@@ -169,14 +169,14 @@
                         <td>${previousReadingMap[meterId] || 'N/A'}</td>
                         <td>${currentReading}</td>
                         <td>${energyUsed.toFixed(1)}<br><span class="th-info">${currentReading}-${previousReading}</span></td>
-                        <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
+                        <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(1)}×${unitPrice}</span></td>
                         <td></td>
                         <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×<sup>${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span></td>
                         <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid > 0 ? sharedPaid.toFixed(2) : `(${sharedPaid.toFixed(2)})`}</span></td>
                 `;
                 if (totalPublicPaid < 0) {
                     rowHTML += `
-                        <td class="ratio-paid">${ratioPaid.toFixed(2)}<br><span class="th-info">${totalBillingPaid}×<sup>${energyUsed.toFixed(2)}</sup>&frasl;<sub>${totalEnergyUsed.toFixed(2)}</sub></span></td>
+                        <td class="ratio-paid">${ratioPaid.toFixed(2)}<br><span class="th-info">${totalBillingPaid}×<sup>${energyUsed.toFixed(1)}</sup>&frasl;<sub>${totalEnergyUsed.toFixed(2)}</sub></span></td>
                     `;
                 }
                 rowHTML += `</tr>`;
