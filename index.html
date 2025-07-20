@@ -221,7 +221,7 @@
     window.onload = renderElectricityTable;
 </script>
 <!-- 底部 Canvas 保持不变 -->
-<div class="container">
+<div class="container result-table">
     <div style="position: relative; width: 100%; height: 400px;">
         <canvas id="energyChart"></canvas>
     </div>
@@ -295,8 +295,9 @@
         renderEnergyChart();
     };
 </script>
+<br>
 <!-- ↓↓↓ 新增：测试用“添加账单”表单 ↓↓↓ -->
-<div class="container">
+<div class="container result-table">
     <h4>添加测试账单</h4>
     <form id="addPeriodForm">
         <div class="row mb-3">
