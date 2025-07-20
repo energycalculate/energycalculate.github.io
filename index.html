@@ -76,7 +76,7 @@
 
             //渲染表格
             const block = document.createElement('div');
-            block.classList.add('period-block', 'mb-4','result-table');
+            block.classList.add('period-block', 'mb-4', 'result-table');
             if (idx % 2 === 0) block.classList.add('odd-period');
 
             //标题和照片的首行
@@ -85,7 +85,7 @@
             // 缩略图（点击打开 Modal）
             const thumb = document.createElement('img');
             // 如果没有配置图片或地址为空，则使用默认图片
-            const imgUrl = "data/image/" + currentPeriod.billingPeriodDate+".jpg";
+            const imgUrl = "data/image/" + currentPeriod.billingPeriodDate + ".jpg";
             thumb.src = imgUrl;
             // 如果加载失败（路径错了、文件不存在等），也回退到默认图
             thumb.onerror = () => {
@@ -118,7 +118,7 @@
                 <th>电表</th>
                 <th>上期读数</th>
                 <th>本期读数</th>
-                <th>度数kWh</th>
+                <th>度数kWh<br><span class="th-info">本期读数-上期读数</span></th>
                 <th>电表费￥<br><span class="th-info">度数×<a href="https://m.sh.bendibao.com/news/265282.html" target="_blank">${unitPrice}</a></span></th>
                 <th>总公摊￥<br><span class="th-info">电费总额-总电表费</span></th>
                 <th>公摊费￥<br><span class="th-info">总公摊×<sup>人数</sup>&frasl;<sub>总人数</sub></span></th>
@@ -168,11 +168,11 @@
                         <td>${meterId}<br><span class="th-info">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
                         <td>${previousReadingMap[meterId] || 'N/A'}</td>
                         <td>${currentReading}</td>
-                        <td>${energyUsed.toFixed(1)}</td>
+                        <td>${energyUsed.toFixed(1)}<br><span class="th-info">${currentReading}-${previousReading}</span></td>
                         <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
                         <td></td>
                         <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×<sup>${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span></td>
-                        <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid>0?sharedPaid.toFixed(2):`(${sharedPaid.toFixed(2)})`}</span></td>
+                        <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid > 0 ? sharedPaid.toFixed(2) : `(${sharedPaid.toFixed(2)})`}</span></td>
                 `;
                 if (totalPublicPaid < 0) {
                     rowHTML += `
