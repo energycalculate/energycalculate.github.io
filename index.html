@@ -6,10 +6,6 @@
     <title>电费分摊计算器</title>
     <link rel="stylesheet" href="dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="dist/css/161125322007.css">
-    <script src="dist/js/jquery-3.7.0.min.js"></script>
-    <script src="dist/js/bootstrap.js"></script>
-    <script src="dist/js/bootstrap.bundle.min.js"></script>
-    <script src="data/billingPeriods.js"></script>
 </head>
 <body>
 <div class="container">
@@ -25,6 +21,11 @@
         </div>
     </div>
 </div>
+<script src="dist/js/jquery-3.7.0.min.js"></script>
+<script src="dist/js/bootstrap.js"></script>
+<script src="dist/js/bootstrap.bundle.min.js"></script>
+<script src="data/billingPeriods.js"></script>
+<script src="dist/chart.min.js"></script>
 <script>
     const unitPrice = 0.6 //0.617
     // 渲染电费表格
@@ -212,5 +213,91 @@
 
     window.onload = renderElectricityTable;
 </script>
+<!-- 底部 Canvas 保持不变 -->
+<div class="container my-5">
+    <div style="position: relative; width: 100%; height: 400px;">
+        <canvas id="energyChart"></canvas>
+    </div>
+</div>
+
+<script>
+    function renderEnergyChart() {
+        const labels = [];
+        // 获取所有电表 ID（假设每期电表列表顺序和种类一致）
+        const meterIds = billingPeriods[0].meters.map(m => m.meterId);
+        // 初始化每条折线的数据容器
+        const dataMap = {};
+        meterIds.forEach(id => dataMap[id] = []);
+
+        // 遍历各期（跳过最后一期），分别计算每个电表的用电量
+        billingPeriods.forEach((period, idx) => {
+            if (idx === billingPeriods.length - 1) return;
+
+            labels.push(period.billingPeriodDate);
+
+            // 上期读数映射
+            const prevMap = {};
+            billingPeriods[idx + 1].meters.forEach(m => {
+                prevMap[m.meterId] = m.currentReading;
+            });
+
+            // 累计各电表本期用电量
+            period.meters.forEach(m => {
+                const energyUsed = m.currentReading - prevMap[m.meterId];
+                dataMap[m.meterId].push(+energyUsed.toFixed(1));
+            });
+        });
+
+        // 按时间升序显示（可选）
+        labels.reverse();
+        meterIds.forEach(id => dataMap[id].reverse());
+
+        const ctx = document.getElementById('energyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: meterIds.map((id, index) => ({
+                    label: id,
+                    data: dataMap[id],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    borderColor: ['#FF6384', '#36A2EB', '#4BC0C0', '#FF9F40'][index],
+                    backgroundColor: ['#FF6384', '#36A2EB', '#4BC0C0', '#FF9F40'][index]
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {display: true, text: '账单日期'}
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {display: true, text: '用电量 (kWh)'}
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '各电表每期用电量变化'
+                    },
+                    legend: {
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    }
+
+    // 页面加载时渲染
+    window.onload = function () {
+        renderElectricityTable();
+        renderEnergyChart();
+    };
+</script>
+
 </body>
 </html>
