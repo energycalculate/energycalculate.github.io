@@ -120,13 +120,13 @@
                 <th>度数kWh</th>
                 <th>电表费￥<br><span class="th-info">度数×${unitPrice}</span></th>
                 <th>总公摊￥<br><span class="th-info">电费总额-总电表费</span></th>
-                <th>公摊费￥<br><span class="th-info">总公摊×(人数÷总人数)</span></th>
+                <th>公摊费￥<br><span class="th-info">总公摊×<sup>人数</sup>&frasl;<sub>总人数</sub></span></th>
                 <th>总费用￥<br><span class="th-info">电表费+公摊费</span></th>
             `;
             if (totalPublicPaid < 0) {
                 theadHTML += `
                 <th>总费用￥<br><span class="th-info">按用电比，公摊费<0时使用</span><br>
-                    <span class="th-info">分表度数÷总度数×电费总额</span>
+                    <span class="th-info">总度数×<sup>分表度数</sup>&frasl;<sub>电费总额</sub></span>
                 </th>
             `;
             }
@@ -170,12 +170,12 @@
                         <td>${energyUsed.toFixed(1)}</td>
                         <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
                         <td></td>
-                        <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}÷${totalPeopleCount}</span></td>
-                        <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid.toFixed(2)}</span></td>
+                        <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×<sup>${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span></td>
+                        <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid>0?sharedPaid.toFixed(2):`(${sharedPaid.toFixed(2)})`}</span></td>
                 `;
                 if (totalPublicPaid < 0) {
                     rowHTML += `
-                        <td class="ratio-paid">${ratioPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}÷${totalEnergyUsed.toFixed(2)}×${totalBillingPaid}</span></td>
+                        <td class="ratio-paid">${ratioPaid.toFixed(2)}<br><span class="th-info">${totalBillingPaid}×<sup>${energyUsed.toFixed(2)}</sup>&frasl;<sub>${totalEnergyUsed.toFixed(2)}</sub></span></td>
                     `;
                 }
                 rowHTML += `</tr>`;
@@ -184,6 +184,7 @@
             let totalRowHTML = `
                 <tr>
                     <td>总<span class="th-info"><br>人数: ${totalPeopleCount}</span></td>
+                    <td></td>
                     <td></td>
                     <td>${totalEnergyUsed.toFixed(1)}</td>
                     <td>${totalMeterPaid.toFixed(2)}</td>
