@@ -6,14 +6,25 @@
     <title>电费分摊计算器</title>
     <link rel="stylesheet" href="dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="dist/css/161125322007.css">
-    <script src="billingPeriods.js"></script>
+    <script src="dist/js/jquery-3.7.0.min.js"></script>
+    <script src="dist/js/bootstrap.js"></script>
+    <script src="dist/js/bootstrap.bundle.min.js"></script>
+    <script src="data/billingPeriods.js"></script>
 </head>
 <body>
 <div class="container">
     <h1 class="text-center my-5">电费分摊计算器</h1>
     <div id="electricityTable"></div>
 </div>
-
+<div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 bg-transparent">
+            <div class="modal-body p-0">
+                <img id="modalImage" src="" class="img-fluid rounded" alt="Meter Photo">
+            </div>
+        </div>
+    </div>
+</div>
 <script>
     const unitPrice = 0.6 //0.617
     // 渲染电费表格
@@ -69,7 +80,24 @@
             if (idx % 2 === 0) block.classList.add('odd-period');
 
             const title = document.createElement('h4');
-            title.textContent = `期次：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid}`;
+            title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid}`;
+            // 缩略图（点击打开 Modal）
+            const thumb = document.createElement('img');
+            thumb.src = currentPeriod.photoUrl;
+            thumb.width = 50;
+            thumb.height = 50;
+            thumb.style.cursor = 'pointer';
+            thumb.style.marginLeft = '8px';
+            thumb.alt = 'Meter Photo';
+            thumb.addEventListener('click', () => {
+                // 把对应的原图地址设置到 Modal 里的 img，再 show Modal
+                const modalImg = document.getElementById('modalImage');
+                modalImg.src = currentPeriod.photoUrl;
+                const modal = new bootstrap.Modal(document.getElementById('photoModal'));
+                modal.show();
+            });
+            title.appendChild(thumb);
+            //
             block.appendChild(title);
 
             const table = document.createElement('table');
