@@ -358,7 +358,14 @@
                 <input type="number" class="form-control" name="m4Count" placeholder="公摊人数" value="1" required>
             </div>
         </div>
+        <!-- 原有的提交按钮 -->
         <button type="submit" class="btn btn-success">添加账单并重新计算</button>
+        <!-- 新增：下载元数据按钮 -->
+        <button type="button"
+                class="btn btn-secondary ms-2"
+                id="downloadDataBtn">
+            下载元数据
+        </button>
     </form>
 </div>
 <!-- ↑↑↑ 表单结束 ↑↑↑ -->
@@ -402,7 +409,21 @@
         // 清空表单
         form.reset();
     });
-
+    document.getElementById('downloadDataBtn').addEventListener('click', function() {
+        // 1. 序列化当前的 billingPeriods
+        const jsonStr = JSON.stringify(billingPeriods, null, 2);
+        // 2. 生成一个 Blob
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        // 3. 创建一个临时下载链接
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'billingPeriods.json'; // 下载文件名
+        // 4. 触发点击
+        a.click();
+        // 5. 清理
+        URL.revokeObjectURL(url);
+    });
 </script>
 
 </body>
