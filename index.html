@@ -85,8 +85,8 @@
             // 缩略图（点击打开 Modal）
             const thumb = document.createElement('img');
             // 如果没有配置图片或地址为空，则使用默认图片
-            const imgUrl = currentPeriod.photoUrl && currentPeriod.photoUrl.trim() ? currentPeriod.photoUrl : 'nopicture.jpg';
-            thumb.src = "data/image/" + imgUrl;
+            const imgUrl = "data/image/" + currentPeriod.billingPeriodDate+".jpg";
+            thumb.src = imgUrl;
             // 如果加载失败（路径错了、文件不存在等），也回退到默认图
             thumb.onerror = () => {
                 thumb.src = 'data/image/nopicture.jpg';
@@ -98,7 +98,10 @@
             thumb.alt = 'Meter Photo';
             thumb.addEventListener('click', () => {
                 const modalImg = document.getElementById('modalImage');
-                modalImg.src = "data/image/" + imgUrl;  // 弹窗也可以同样使用 imgUrl
+                modalImg.src = imgUrl;  // 弹窗也可以同样使用 imgUrl
+                modalImg.onerror = () => {
+                    modalImg.src = 'data/image/nopicture.jpg';
+                };
                 const modal = new bootstrap.Modal(document.getElementById('photoModal'));
                 modal.show();
             });
@@ -390,11 +393,10 @@
             });
         }
 
-        // 构造新账单对象（不设置 photoUrl，或者可填默认）
+        // 构造新账单对象
         const newPeriod = {
             billingPeriodDate: billingDate,
             totalBillingPaid: totalPaid,
-            photoUrl: '',
             meters: newMeters
         };
 
