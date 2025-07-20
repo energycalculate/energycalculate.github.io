@@ -79,15 +79,16 @@
             block.classList.add('period-block', 'mb-4');
             if (idx % 2 === 0) block.classList.add('odd-period');
 
+            //标题和照片的首行
             const title = document.createElement('h4');
             title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid}`;
             // 缩略图（点击打开 Modal）
             const thumb = document.createElement('img');
             thumb.src = currentPeriod.photoUrl;
-            thumb.width = 50;
-            thumb.height = 50;
+            thumb.width = 100;
+            thumb.height = 100;
             thumb.style.cursor = 'pointer';
-            thumb.style.marginLeft = '8px';
+            thumb.style.marginLeft = '18px';
             thumb.alt = 'Meter Photo';
             thumb.addEventListener('click', () => {
                 // 把对应的原图地址设置到 Modal 里的 img，再 show Modal
@@ -154,7 +155,7 @@
                 );
                 let rowHTML = `
                     <tr>
-                        <td>${meterId}<br><span class="th-info">人数: ${peopleCount}</span></td>
+                        <td>${meterId}<br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
                         <td>${currentReading}</td>
                         <td>${previousReadingMap[meterId] || 'N/A'}</td>
                         <td>${energyUsed.toFixed(1)}</td>

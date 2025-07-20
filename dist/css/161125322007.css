@@ -36,3 +36,7 @@
 .table thead th {
     vertical-align: top;
 }
+
+.count-emphasis {
+    font-weight: 500;
+}
