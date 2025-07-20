@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>电费计算器</title>
+    <title></title>
     <link rel="stylesheet" href="dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="dist/css/161125322007.css">
 </head>
@@ -46,29 +46,29 @@
             // 一次遍历，计算所有汇总指标
             const {
                 totalPeopleCount,
-                totalSelfPaid,
+                totalMeterPaid,
                 totalEnergyUsed
             } = currentPeriod.meters.reduce((accumulator, {meterId, currentReading, peopleCount}) => {
                 const prev = previousReadingMap[meterId];
                 const energy = currentReading - prev;
                 accumulator.totalPeopleCount += peopleCount;
-                accumulator.totalSelfPaid += energy * unitPrice;
+                accumulator.totalMeterPaid += energy * unitPrice;
                 accumulator.totalEnergyUsed += energy;
                 return accumulator;
             }, {
                 totalPeopleCount: 0,
-                totalSelfPaid: 0,
+                totalMeterPaid: 0,
                 totalEnergyUsed: 0
             });
-            // 计算[总待公摊]
+            // 计算[总公摊]
             const totalBillingPaid = currentPeriod.totalBillingPaid;
-            const totalPublicPaid = totalBillingPaid - totalSelfPaid;
+            const totalPublicPaid = totalBillingPaid - totalMeterPaid;
             console.log(
                 '1：billingPeriodDate=', currentPeriod.billingPeriodDate,
                 'totalBillingPaid=', totalBillingPaid,
                 'meters=', currentPeriod.meters,
                 'totalPeopleCount=', totalPeopleCount,
-                'totalSelfPaid=', totalSelfPaid.toFixed(2),
+                'totalMeterPaid=', totalMeterPaid.toFixed(2),
                 'totalPublicPaid=', totalPublicPaid.toFixed(2),
                 'totalEnergyUsed=', totalEnergyUsed.toFixed(1),
                 'previousReadingMap=', previousReadingMap,
@@ -80,7 +80,7 @@
             if (idx % 2 === 0) block.classList.add('odd-period');
 
             //标题和照片的首行
-            const title = document.createElement('h4');
+            const title = document.createElement('h1');
             title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid}`;
             // 缩略图（点击打开 Modal）
             const thumb = document.createElement('img');
@@ -116,12 +116,11 @@
               <tr>
                 <th>电表</th>
                 <th>本期读数</th>
-                <th>上期读数</th>
                 <th>度数kWh</th>
-                <th>自付费￥<br><span class="th-info">度数×${unitPrice}</span></th>
-                <th>总待公摊￥<br><span class="th-info">电费总额-总自付费</span></th>
-                <th>公摊费￥<br><span class="th-info">总待公摊×(人数÷总人数)</span></th>
-                <th>总费用￥<br><span class="th-info">自付费+公摊费</span></th>
+                <th>电表费￥<br><span class="th-info">度数×${unitPrice}</span></th>
+                <th>总公摊￥<br><span class="th-info">电费总额-总电表费</span></th>
+                <th>公摊费￥<br><span class="th-info">总公摊×(人数÷总人数)</span></th>
+                <th>总费用￥<br><span class="th-info">电表费+公摊费</span></th>
             `;
             if (totalPublicPaid < 0) {
                 theadHTML += `
@@ -141,9 +140,9 @@
                 const currentReading = meter.currentReading;//本期读数
                 const previousReading = previousReadingMap[meterId];//上期读数
                 const energyUsed = currentReading - previousReading;//使用度数
-                const selfPaid = energyUsed * unitPrice;//自付费
+                const meterPaid = energyUsed * unitPrice;//电表费
                 const sharedPaid = totalPublicPaid * peopleCount / totalPeopleCount;//公摊费
-                const combinePaid = sharedPaid + selfPaid;//按：自付费+公摊费
+                const combinePaid = sharedPaid + meterPaid;//按：电表费+公摊费
                 totalCombinePaid += combinePaid;
                 const ratioPaid = (energyUsed / totalEnergyUsed) * totalBillingPaid;//按：度数/总度数×电费总额
                 totalRatioPaid += ratioPaid
@@ -153,7 +152,7 @@
                     'currentReading==', currentReading,
                     'previousReading==', previousReading,
                     'energyUsed==', energyUsed.toFixed(1),
-                    'selfPaid==', selfPaid.toFixed(2),
+                    'meterPaid==', meterPaid.toFixed(2),
                     'sharedPaid==', sharedPaid.toFixed(2),
                     'combinePaid==', combinePaid.toFixed(2),
                     'ratioPaid==', ratioPaid.toFixed(2),
@@ -166,12 +165,11 @@
                     <tr>
                         <td>${meterId}<br><span class="th-info">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
                         <td>${currentReading}</td>
-                        <td>${previousReadingMap[meterId] || 'N/A'}</td>
                         <td>${energyUsed.toFixed(1)}</td>
-                        <td class="self-paid">${selfPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
+                        <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
                         <td></td>
                         <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×${peopleCount}÷${totalPeopleCount}</span></td>
-                        <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${selfPaid.toFixed(2)}+${sharedPaid.toFixed(2)}</span></td>
+                        <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid.toFixed(2)}</span></td>
                 `;
                 if (totalPublicPaid < 0) {
                     rowHTML += `
@@ -185,10 +183,9 @@
                 <tr>
                     <td>总<span class="th-info"><br>人数: ${totalPeopleCount}</span></td>
                     <td></td>
-                    <td></td>
                     <td>${totalEnergyUsed.toFixed(1)}</td>
-                    <td>${totalSelfPaid.toFixed(2)}</td>
-                    <td>${totalPublicPaid.toFixed(2)}<br><span class="th-info">${totalBillingPaid}-${totalSelfPaid.toFixed(2)}</span></td>
+                    <td>${totalMeterPaid.toFixed(2)}</td>
+                    <td>${totalPublicPaid.toFixed(2)}<br><span class="th-info">${totalBillingPaid}-${totalMeterPaid.toFixed(2)}</span></td>
                     <td></td>
                     <td>${totalCombinePaid.toFixed(2)}</td>
 

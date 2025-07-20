@@ -14,7 +14,7 @@ body {
     vertical-align: middle;
 }
 
-.self-paid, .shared-paid {
+.meter-paid, .shared-paid {
     font-weight: bold;
 }
 
