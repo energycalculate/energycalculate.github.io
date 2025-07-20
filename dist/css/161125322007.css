@@ -1,0 +1,38 @@
+.table thead th {
+    border: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.self-paid, .shared-paid {
+    font-weight: bold;
+}
+
+.combine-paid {
+    font-weight: bold;
+    color: red;
+}
+
+.ratio-paid, .ratio-info {
+    font-weight: bold;
+    color: #ff00ff;
+}
+
+.combine-paid .th-info, .ratio-paid .th-info {
+    color: #000000;
+}
+
+.th-info a {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.th-info {
+    font-size: 80%;
+    font-weight: 100;
+}
+
+.table thead th {
+    vertical-align: top;
+}

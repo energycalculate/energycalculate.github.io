@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电费分摊计算器</title>
+    <link rel="stylesheet" href="dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="dist/css/161125322007.css">
+    <script src="billingPeriods.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center my-5">电费分摊计算器</h1>
+    <div id="electricityTable"></div>
+</div>
+
+<script>
+    const unitPrice = 0.6 //0.617
+    // 渲染电费表格
+    function renderElectricityTable() {
+        const container = document.getElementById('electricityTable');
+        container.innerHTML = '';
+
+        billingPeriods.forEach((currentPeriod, idx) => {
+            // 跳过最后一期，因为无法再为它解析[上期数据]
+            if (idx === billingPeriods.length - 1) {
+                return;
+            }
+            // 构建上期读数映射，数据结构：{1号表: 5337.5, 2号表: 7995.4, 3号表: 10008.2, 4号表: 7904.9}
+            const previousPeriod = billingPeriods[idx + 1];
+            const previousReadingMap = {};
+            previousPeriod.meters.forEach(m => {
+                previousReadingMap[m.meterId] = m.currentReading;
+            });
+            // 一次遍历，计算所有汇总指标
+            const {
+                totalPeopleCount,
+                totalSelfPaid,
+                totalEnergyUsed
+            } = currentPeriod.meters.reduce((accumulator, {meterId, currentReading, peopleCount}) => {
+                const prev = previousReadingMap[meterId];
+                const energy = currentReading - prev;
+                accumulator.totalPeopleCount += peopleCount;
+                accumulator.totalSelfPaid += energy * unitPrice;
+                accumulator.totalEnergyUsed += energy;
+                return accumulator;
+            }, {
+                totalPeopleCount: 0,
+                totalSelfPaid: 0,
+                totalEnergyUsed: 0
+            });
+            // 计算[总待公摊]
+            const totalBillingPaid = currentPeriod.totalBillingPaid;
+            const totalPublicPaid = totalBillingPaid - totalSelfPaid;
+            console.log(
+                '1：billingPeriodDate=', currentPeriod.billingPeriodDate,
+                'totalBillingPaid=', totalBillingPaid,
+                'meters=', currentPeriod.meters,
+                'totalPeopleCount=', totalPeopleCount,
+                'totalSelfPaid=', totalSelfPaid.toFixed(2),
+                'totalPublicPaid=', totalPublicPaid.toFixed(2),
+                'totalEnergyUsed=', totalEnergyUsed.toFixed(1),
+                'previousReadingMap=', previousReadingMap,
+            );
+
+            //渲染表格
+            const block = document.createElement('div');
+            block.classList.add('period-block', 'mb-4');
+            if (idx % 2 === 0) block.classList.add('odd-period');
+
+            const title = document.createElement('h4');
+            title.textContent = `期次：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid}`;
+            block.appendChild(title);
+
+            const table = document.createElement('table');
+            table.classList.add('table', 'table-bordered', 'table-hover');
+            let theadHTML = `
+            <thead class="thead-dark">
+              <tr>
+                <th>电表</th>
+                <th>本期读数</th>
+                <th>上期读数</th>
+                <th>度数kWh</th>
+                <th>自付费￥<br><span class="th-info">度数×${unitPrice}</span></th>
+                <th>总待公摊￥<br><span class="th-info">电费总额-总自付费</span></th>
+                <th>公摊费￥<br><span class="th-info">总待公摊×(人数÷总人数)</span></th>
+                <th>总费用￥<br><span class="th-info">自付费+公摊费</span></th>
+            `;
+            if (totalPublicPaid < 0) {
+                theadHTML += `
+                <th>总费用￥<br><span class="th-info">(按用电比)</span><br>
+                    <span class="th-info">度数÷总度数×电费总额</span>
+                </th>
+            `;
+            }
+            theadHTML += `</tr></thead><tbody></tbody>`;
+            table.innerHTML = theadHTML;
+            const tbody = table.querySelector('tbody');
+            let totalCombinePaid = 0;
+            let totalRatioPaid = 0;
+            currentPeriod.meters.forEach(meter => {
+                const meterId = meter.meterId;
+                const peopleCount = meter.peopleCount;
+                const currentReading = meter.currentReading;//本期读数
+                const previousReading = previousReadingMap[meterId];//上期读数
+                const energyUsed = currentReading - previousReading;//使用度数
+                const selfPaid = energyUsed * unitPrice;//自付费
+                const sharedPaid = totalPublicPaid * peopleCount / totalPeopleCount;//公摊费
+                const combinePaid = sharedPaid + selfPaid;//按：自付费+公摊费
+                totalCombinePaid += combinePaid;
+                const ratioPaid = (energyUsed / totalEnergyUsed) * totalBillingPaid;//按：度数/总度数×电费总额
+                totalRatioPaid += ratioPaid
+                console.log(
+                    '2:meterId==', meterId,
+                    'peopleCount==', peopleCount,
+                    'currentReading==', currentReading,
+                    'previousReading==', previousReading,
+                    'energyUsed==', energyUsed.toFixed(1),
+                    'selfPaid==', selfPaid.toFixed(2),
+                    'sharedPaid==', sharedPaid.toFixed(2),
+                    'combinePaid==', combinePaid.toFixed(2),
+                    'ratioPaid==', ratioPaid.toFixed(2),
+                    'totalBillingPaid==', totalBillingPaid,
+                    'totalPublicPaid==', totalPublicPaid.toFixed(2),
+                    'totalPeopleCount==', totalPeopleCount
+                );
+                let rowHTML = `
+                    <tr>
+                        <td>${meterId}<br><span class="th-info">人数: ${peopleCount}</span></td>
+                        <td>${currentReading}</td>
+                        <td>${previousReadingMap[meterId] || 'N/A'}</td>
+                        <td>${energyUsed.toFixed(1)}</td>
+                        <td class="self-paid">${selfPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
+                        <td></td>
+                        <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×${peopleCount}÷${totalPeopleCount}</span></td>
+                        <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${selfPaid.toFixed(2)}+${sharedPaid.toFixed(2)}</span></td>
+                `;
+                if (totalPublicPaid < 0) {
+                    rowHTML += `
+                        <td class="ratio-paid">${ratioPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}÷${totalEnergyUsed.toFixed(2)}×${totalBillingPaid}</span></td>
+                    `;
+                }
+                rowHTML += `</tr>`;
+                tbody.insertAdjacentHTML('beforeend', rowHTML);
+            });
+            let totalRowHTML = `
+                <tr>
+                    <td>总<span class="th-info"><br>人数: ${totalPeopleCount}</span></td>
+                    <td></td>
+                    <td></td>
+                    <td>${totalEnergyUsed.toFixed(1)}</td>
+                    <td>${totalSelfPaid.toFixed(2)}</td>
+                    <td>${totalPublicPaid.toFixed(2)}<br><span class="th-info">${totalBillingPaid}-${totalSelfPaid.toFixed(2)}</span></td>
+                    <td></td>
+                    <td>${totalCombinePaid.toFixed(2)}</td>
+
+            `;
+            if (totalPublicPaid < 0) {
+                totalRowHTML += `
+                <td>${totalRatioPaid.toFixed(2)}</td>
+                `;
+            }
+            totalRowHTML += `</tr>`;
+            tbody.insertAdjacentHTML('beforeend', totalRowHTML);
+            block.appendChild(table);
+            // —— 仅在 totalPublicPaid < 0 时才显示提示 ——
+            if (totalPublicPaid < 0) {
+                const noteWrapper = document.createElement('div');
+                noteWrapper.className = 'alert alert-info border-0 rounded-0 mt-2';
+                noteWrapper.innerHTML = `
+                <div class="d-flex align-items-center">
+                  <span class="me-2">📌</span>
+                  <div>
+                    本期由于公摊费<0，<span class="ratio-info">按用电比</span>付费
+                  </div>
+                </div>
+              `;
+                block.appendChild(noteWrapper);
+            }
+            container.appendChild(block);
+        });
+    }
+
+    window.onload = renderElectricityTable;
+</script>
+</body>
+</html>
