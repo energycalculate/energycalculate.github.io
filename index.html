@@ -115,6 +115,7 @@
             <thead class="thead-dark">
               <tr>
                 <th>电表</th>
+                <th>上期读数</th>
                 <th>本期读数</th>
                 <th>度数kWh</th>
                 <th>电表费￥<br><span class="th-info">度数×${unitPrice}</span></th>
@@ -164,6 +165,7 @@
                 let rowHTML = `
                     <tr>
                         <td>${meterId}<br><span class="th-info">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
+                        <td>${previousReadingMap[meterId] || 'N/A'}</td>
                         <td>${currentReading}</td>
                         <td>${energyUsed.toFixed(1)}</td>
                         <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
