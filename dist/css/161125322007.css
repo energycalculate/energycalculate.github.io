@@ -1,3 +1,12 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 100% !important;
+    padding-left: 1px !important;
+    padding-right: 1px !important;
+}
 .table thead th {
     border: 1px solid #dee2e6;
     padding: 12px;
