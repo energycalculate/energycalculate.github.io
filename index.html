@@ -76,7 +76,7 @@
 
             //渲染表格
             const block = document.createElement('div');
-            block.classList.add('period-block', 'mb-4');
+            block.classList.add('period-block', 'mb-4','result-table');
             if (idx % 2 === 0) block.classList.add('odd-period');
 
             //标题和照片的首行
@@ -94,7 +94,8 @@
             thumb.width = 100;
             thumb.height = 100;
             thumb.style.cursor = 'pointer';
-            thumb.style.marginLeft = '18px';
+            thumb.style.marginLeft = '15px';
+            thumb.style.marginTop = '1px';
             thumb.alt = 'Meter Photo';
             thumb.addEventListener('click', () => {
                 const modalImg = document.getElementById('modalImage');
@@ -110,7 +111,7 @@
             block.appendChild(title);
 
             const table = document.createElement('table');
-            table.classList.add('table', 'table-bordered', 'table-hover','result-table');
+            table.classList.add('table', 'table-bordered', 'table-hover');
             let theadHTML = `
             <thead class="thead-dark">
               <tr>
