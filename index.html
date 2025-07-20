@@ -170,7 +170,7 @@
                         <td>${energyUsed.toFixed(1)}</td>
                         <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(2)}×${unitPrice}</span></td>
                         <td></td>
-                        <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×${peopleCount}÷${totalPeopleCount}</span></td>
+                        <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}÷${totalPeopleCount}</span></td>
                         <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid.toFixed(2)}</span></td>
                 `;
                 if (totalPublicPaid < 0) {
