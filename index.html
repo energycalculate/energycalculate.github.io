@@ -98,7 +98,7 @@
             thumb.alt = 'Meter Photo';
             thumb.addEventListener('click', () => {
                 const modalImg = document.getElementById('modalImage');
-                modalImg.src = imgUrl;  // 弹窗也可以同样使用 imgUrl
+                modalImg.src = "data/image/" + imgUrl;  // 弹窗也可以同样使用 imgUrl
                 const modal = new bootstrap.Modal(document.getElementById('photoModal'));
                 modal.show();
             });
@@ -408,11 +408,11 @@
         // 清空表单
         form.reset();
     });
-    document.getElementById('downloadDataBtn').addEventListener('click', function() {
+    document.getElementById('downloadDataBtn').addEventListener('click', function () {
         // 1. 序列化当前的 billingPeriods
         const jsonStr = JSON.stringify(billingPeriods, null, 2);
         // 2. 生成一个 Blob
-        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const blob = new Blob([jsonStr], {type: 'application/json'});
         // 3. 创建一个临时下载链接
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
