@@ -165,7 +165,7 @@
                 const alias = meterAliasMap[meterId]
                 let rowHTML = `
                     <tr>
-                        <td>${meterId}<br><span class="th-info">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
+                        <td>${meterId}<br><span class="th-info count-emphasis">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
                         <td>${previousReadingMap[meterId] || 'N/A'}</td>
                         <td>${currentReading}</td>
                         <td>${energyUsed.toFixed(1)}<br><span class="th-info">${currentReading}-${previousReading}</span></td>
