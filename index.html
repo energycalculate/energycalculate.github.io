@@ -81,7 +81,7 @@
 
             //标题和照片的首行
             const title = document.createElement('h1');
-            title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid}`;
+            title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid.toFixed(2)}`;
             // 缩略图（点击打开 Modal）
             const thumb = document.createElement('img');
             // 如果没有配置图片或地址为空，则使用默认图片
