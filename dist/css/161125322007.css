@@ -46,9 +46,13 @@ body {
     vertical-align: top;
 }
 
-.count-emphasis {
+.people-count-emphasis {
+    font-weight: 700;
+}
+.alias-emphasis {
     font-weight: 700;
     font-family: cursive;
+    font-size: 85%;
 }
 .result-table {
     width: 100%;

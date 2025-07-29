@@ -165,13 +165,13 @@
                 const alias = meterAliasMap[meterId]
                 let rowHTML = `
                     <tr>
-                        <td>${meterId}<br><span class="th-info count-emphasis">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
+                        <td>${meterId}<br><span class="th-info alias-emphasis">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
                         <td>${previousReadingMap[meterId].toFixed(1)}</td>
                         <td>${currentReading.toFixed(1)}</td>
                         <td>${energyUsed.toFixed(1)}<br><span class="th-info">${currentReading}-${previousReading}</span></td>
                         <td class="meter-paid">${meterPaid.toFixed(2)}<br><span class="th-info">${energyUsed.toFixed(1)}×${unitPrice}</span></td>
                         <td></td>
-                        <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×<sup>${peopleCount > 1 ? `<span class="count-emphasis">${peopleCount}</span>` : peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span></td>
+                        <td class="shared-paid">${sharedPaid.toFixed(2)}<br><span class="th-info">${totalPublicPaid.toFixed(2)}×<sup>${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span></td>
                         <td class="combine-paid">${combinePaid.toFixed(2)}<br><span class="th-info">${meterPaid.toFixed(2)}+${sharedPaid > 0 ? sharedPaid.toFixed(2) : `(${sharedPaid.toFixed(2)})`}</span></td>
                 `;
                 if (totalPublicPaid < 0) {
