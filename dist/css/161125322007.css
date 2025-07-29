@@ -48,6 +48,7 @@ body {
 
 .count-emphasis {
     font-weight: 700;
+    font-family: cursive;
 }
 .result-table {
     width: 100%;
