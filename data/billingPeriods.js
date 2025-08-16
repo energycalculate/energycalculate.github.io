@@ -41,13 +41,43 @@ const billingPeriods = [
         ]
     },
     {
-        billingPeriodDate: "2025-03-06",
+        billingPeriodDate: "2025-03-30",
         totalBillingPaid: 295.8,
         meters: [
             {meterId: "1号表", currentReading: 7887.0, peopleCount: 1},
-            {meterId: "2号表", currentReading: 9895.0, peopleCount: 2},
+            {meterId: "2号表", currentReading: 9895.0, peopleCount: 3},
             {meterId: "3号表", currentReading: 7739.9, peopleCount: 1},
             {meterId: "4号表", currentReading: 5128.2, peopleCount: 1},
+        ]
+    },
+    {
+        billingPeriodDate: "2025-02-08",
+        totalBillingPaid: 444.5,
+        meters: [
+            {meterId: "1号表", currentReading: 7794.6, peopleCount: 1},
+            {meterId: "2号表", currentReading: 9803.2, peopleCount: 3},
+            {meterId: "3号表", currentReading: 7581.2, peopleCount: 1},
+            {meterId: "4号表", currentReading: 4954.9, peopleCount: 1},
+        ]
+    },
+    {
+        billingPeriodDate: "2025-01-14",
+        totalBillingPaid: 672.2,
+        meters: [
+            {meterId: "1号表", currentReading: 7759.2, peopleCount: 1},
+            {meterId: "2号表", currentReading: 9773.2, peopleCount: 3},
+            {meterId: "3号表", currentReading: 7466.4, peopleCount: 1},
+            {meterId: "4号表", currentReading: 4806.1, peopleCount: 1},
+        ]
+    },
+    {
+        billingPeriodDate: "2024-12-17",
+        totalBillingPaid: 380.8,
+        meters: [
+            {meterId: "1号表", currentReading: 7706, peopleCount: 1},
+            {meterId: "2号表", currentReading: 9717.5, peopleCount: 3},
+            {meterId: "3号表", currentReading: 7281, peopleCount: 1},
+            {meterId: "4号表", currentReading: 4331, peopleCount: 1},
         ]
     }
 ];
