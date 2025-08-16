@@ -1,0 +1,64 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 98% !important;
+    padding-left: 1px !important;
+    padding-right: 1px !important;
+}
+.table thead th {
+    border: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 115%;
+}
+
+.meter-paid, .shared-paid {
+    font-weight: bold;
+}
+
+.combine-paid {
+    font-weight: bold;
+    color: red;
+}
+
+.ratio-paid, .ratio-info {
+    font-weight: bold;
+    color: #ff00ff;
+}
+
+.combine-paid .th-info, .ratio-paid .th-info {
+    color: #000000;
+}
+
+.th-info a {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.th-info {
+    font-size: 80%;
+    font-weight: 100;
+}
+
+.table thead th {
+    vertical-align: top;
+}
+
+.people-count-emphasis {
+    font-weight: 700;
+}
+.alias-emphasis {
+    font-weight: 700;
+    font-family: cursive;
+    font-size: 100%;
+}
+.result-table {
+    width: 100%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.td-value{
+    font-size: 130%;
+}
