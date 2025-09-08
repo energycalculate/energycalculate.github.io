@@ -145,10 +145,19 @@
     function getUnitPrice(period) {
         const cutoff = new Date('2025-07-18');
         const billDate = new Date(period.billingPeriodDate);
+        const t = period.tier; // 默认第3档以兼容旧数据
+        let tierLabel;
         if (billDate <= cutoff) {
-            return 0.600;
+            return {unitPrice: 0.600, tierLabel: "①", tier: t};
         }
-        return TIER_PRICE_MAP[period.tier];
+        if (t == 1) {
+            tierLabel = "①";
+        } else if (t == 2) {
+            tierLabel = "②";
+        } else {
+            tierLabel = "③";
+        }
+        return {unitPrice: TIER_PRICE_MAP[t], tierLabel: tierLabel, tier: t};
     }
 
     // 渲染电费表格
@@ -157,7 +166,7 @@
         container.innerHTML = '';
 
         billingPeriods.forEach((currentPeriod, idx) => {
-            const unitPrice = getUnitPrice(currentPeriod);
+            const {unitPrice, tierLabel, tier} = getUnitPrice(currentPeriod);
 
             // 跳过最后一期，因为无法再为它解析[上期数据]
             if (idx === billingPeriods.length - 1) {
@@ -242,7 +251,7 @@
 
             // 右侧：档位徽章（历史价或第X档）
             const rightWrap = document.createElement('div');
-            const tierText = `第${currentPeriod.tier}档 (￥${unitPrice.toFixed(3)} / kWh)`;
+            const tierText = `📌第${tierLabel}档 (￥${unitPrice.toFixed(3)} / kWh)`;
             rightWrap.innerHTML = `<span class="">${tierText}</span>`;
             headerRow.appendChild(leftWrap);
             headerRow.appendChild(rightWrap);
