@@ -105,6 +105,17 @@
                 <input type="number" class="form-control" name="m4Count" placeholder="公摊人数" value="1" required>
             </div>
         </div>
+        <div class="row mb-3">
+            <div class="col">
+                <label for="priceTier" class="form-label">单价档位</label>
+                <select class="form-select" id="priceTier" name="priceTier" required>
+                    <option value="1">第一档（￥0.617/度）</option>
+                    <option value="2">第二档（￥0.667/度）</option>
+                    <option value="3" selected>第三档（￥0.917/度）</option>
+                </select>
+                <div class="form-text">注：2025-07-18（含）之前的账单仍按￥0.600/度计算。</div>
+            </div>
+        </div>
         <!-- 原有的提交按钮 -->
         <button type="submit" class="btn btn-success">添加账单并测算↑</button>
         <!-- 新增：下载元数据按钮 -->
@@ -122,11 +133,22 @@
 <script src="data/billingPeriods.js"></script>
 <script src="dist/chart.min.js"></script>
 <script>
-    //账单日期 ≤ 2025-07-18 时，就会自动用 0.6，之后就会用 0.617
-    function getUnitPrice(dateStr) {
+    // 档位价格映射
+    const TIER_PRICE_MAP = {1: 0.617, 2: 0.667, 3: 0.917};
+
+    /**
+     * 计算本期单价：
+     * - 2025-07-18（含）之前：固定 0.600
+     * - 之后：按 period.tier（第1/2/3档）决定单价；如缺省则默认按第3档以保持与你现有结果一致
+     * 返回：{ unitPrice, tierLabel, tier }
+     */
+    function getUnitPrice(period) {
         const cutoff = new Date('2025-07-18');
-        const billDate = new Date(dateStr);
-        return billDate <= cutoff ? 0.6 : 0.917;
+        const billDate = new Date(period.billingPeriodDate);
+        if (billDate <= cutoff) {
+            return 0.600;
+        }
+        return TIER_PRICE_MAP[period.tier];
     }
 
     // 渲染电费表格
@@ -135,7 +157,7 @@
         container.innerHTML = '';
 
         billingPeriods.forEach((currentPeriod, idx) => {
-            const unitPrice = getUnitPrice(currentPeriod.billingPeriodDate);
+            const unitPrice = getUnitPrice(currentPeriod);
 
             // 跳过最后一期，因为无法再为它解析[上期数据]
             if (idx === billingPeriods.length - 1) {
@@ -184,15 +206,19 @@
             block.classList.add('period-block', 'mb-4', 'result-table');
             if (idx % 2 === 0) block.classList.add('odd-period');
 
-            //标题和照片的首行
+            // —— 标题与右侧档位信息（两端对齐） —— //
+            const headerRow = document.createElement('div');
+            headerRow.className = 'd-flex justify-content-between align-items-center mb-2';
+            // 左侧：标题 + 缩略图
+            const leftWrap = document.createElement('div');
+            leftWrap.className = 'd-flex align-items-center';
             const title = document.createElement('h1');
-            title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${totalBillingPaid.toFixed(2)}`;
+            title.className = 'mb-0';
+            title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${currentPeriod.totalBillingPaid.toFixed(2)}`;
             // 缩略图（点击打开 Modal）
             const thumb = document.createElement('img');
-            // 如果没有配置图片或地址为空，则使用默认图片
             const imgUrl = "data/image/" + currentPeriod.billingPeriodDate + ".jpg";
             thumb.src = imgUrl;
-            // 如果加载失败（路径错了、文件不存在等），也回退到默认图
             thumb.onerror = () => {
                 thumb.src = 'data/image/nopicture.jpg';
             };
@@ -204,16 +230,23 @@
             thumb.alt = 'Meter Photo';
             thumb.addEventListener('click', () => {
                 const modalImg = document.getElementById('modalImage');
-                modalImg.src = imgUrl;  // 弹窗也可以同样使用 imgUrl
+                modalImg.src = imgUrl;
                 modalImg.onerror = () => {
                     modalImg.src = 'data/image/nopicture.jpg';
                 };
                 const modal = new bootstrap.Modal(document.getElementById('photoModal'));
                 modal.show();
             });
-            title.appendChild(thumb);
-            //
-            block.appendChild(title);
+            leftWrap.appendChild(title);
+            leftWrap.appendChild(thumb);
+
+            // 右侧：档位徽章（历史价或第X档）
+            const rightWrap = document.createElement('div');
+            const tierText = `第${currentPeriod.tier}档 (￥${unitPrice.toFixed(3)} / kWh)`;
+            rightWrap.innerHTML = `<span class="">${tierText}</span>`;
+            headerRow.appendChild(leftWrap);
+            headerRow.appendChild(rightWrap);
+            block.appendChild(headerRow);
 
             const table = document.createElement('table');
             table.classList.add('table', 'table-bordered', 'table-hover');
@@ -612,7 +645,6 @@
 </script>
 <!-- ↑↑↑ 表单结束 ↑↑↑ -->
 <script>
-    // 给表单绑定 submit 事件
     document.getElementById('addPeriodForm').addEventListener('submit', function (e) {
         e.preventDefault();
         const form = e.target;
@@ -620,6 +652,7 @@
         // 取值
         const billingDate = form.billingDate.value; // YYYY-MM-DD
         const totalPaid = parseFloat(form.totalPaid.value);
+        const tier = form.priceTier.value;  // 获取档位
 
         // 四个电表数据
         const newMeters = [];
@@ -637,6 +670,7 @@
         const newPeriod = {
             billingPeriodDate: billingDate,
             totalBillingPaid: totalPaid,
+            tier: tier,
             meters: newMeters
         };
 
