@@ -384,7 +384,7 @@
 
     function renderEnergyChart() {
         // 仅保留最近periodCount期（index 0 是最新）
-        const periodCount = 5;
+        const periodCount = 6;
         const lastCount = Math.min(periodCount, billingPeriods.length);
         const recentDesc = billingPeriods.slice(0, lastCount); // newest -> older
         const ascPeriods = recentDesc.slice().reverse();       // oldest(倒数第periodCount) -> newest
