@@ -139,14 +139,14 @@
         const t = period.tier; // 默认第3档以兼容旧数据
         let tierLabel;
         if (billDate <= cutoff) {
-            return {unitPrice: 0.600, tierLabel: "①", tier: t};
+            return {unitPrice: 0.600, tierLabel: "一", tier: t};
         }
         if (t == 1) {
-            tierLabel = "①";
+            tierLabel = "一";
         } else if (t == 2) {
-            tierLabel = "②";
+            tierLabel = "二";
         } else {
-            tierLabel = "③";
+            tierLabel = "三";
         }
         return {unitPrice: TIER_PRICE_MAP[t], tierLabel: tierLabel, tier: t};
     }
