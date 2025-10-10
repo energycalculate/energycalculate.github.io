@@ -62,3 +62,11 @@ body {
 .td-value{
     font-size: 130%;
 }
+/* 隶书字体栈：按平台优先级排布，最后回退 serif */
+.tier-badge{
+    font-family: "STLiti","LiSu","隶书","SimLi","KaiTi","Kaiti SC","STKaiti","DFKai-SB",serif;
+    font-weight: 600;
+    letter-spacing: .3px;
+    font-size: 130%;
+    color: #FF0000;
+}

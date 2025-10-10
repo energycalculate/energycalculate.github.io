@@ -220,7 +220,7 @@
 
             // 右侧：档位徽章（历史价或第X档）
             const rightWrap = document.createElement('div');
-            const tierText = `📌第${tierLabel}档 (￥${unitPrice.toFixed(3)} / kWh)`;
+            const tierText = `📌第<span class="tier-badge">${tierLabel}</span>档 (￥${unitPrice.toFixed(3)} / kWh)`;
             rightWrap.innerHTML = `<span class="">${tierText}</span>`;
             headerRow.appendChild(leftWrap);
             headerRow.appendChild(rightWrap);
