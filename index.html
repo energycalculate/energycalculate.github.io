@@ -316,7 +316,7 @@
                     <td><span class="td-value">${totalMeterPaid.toFixed(3)}</span></td>
                     <td></td>
                     <td></td>
-                    <td><span class="td-value">${totalCombinePaid.toFixed(2)}</span>${Math.abs(totalCombinePaid - totalBillingPaid) <= 0.000000000001 ? "✔" : "✖"}</td>
+                    <td><span class="td-value">${totalCombinePaid.toFixed(2)}</span>${Math.abs(totalCombinePaid - totalBillingPaid) <= 0.00001 ? "✔" : "✖"}</td>
 
             `;
             if (isNegativePublicPaid) {
