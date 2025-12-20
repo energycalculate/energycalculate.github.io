@@ -8,124 +8,41 @@
 </head>
 <body>
 <h1 class="text-center my-5">电费计算器</h1>
+
 <!-- 底部 Canvas 保持不变 -->
 <div class="container result-table">
     <div style="position: relative; width: 100%; height: 400px;">
         <canvas id="energyChart"></canvas>
     </div>
 </div>
+
 <br>
+
 <div class="container">
     <div id="electricityTable"></div>
 </div>
+
 <br>
-<!-- ↓↓↓ 新增：测试用“添加账单”表单 ↓↓↓ -->
-<div class="container result-table">
-    <h4>添加测试账单</h4>
-    <form id="addPeriodForm">
-        <div class="row mb-3">
-            <div class="col">
-                <label for="billingDate" class="form-label">帐单日期</label>
-                <input type="text" class="form-control" id="billingDate" name="billingDate" placeholder="YYYY-MM-DD"
-                       value="2088-08-08" required>
-            </div>
-            <div class="col">
-                <label for="totalPaid" class="form-label">电费总额（￥）</label>
-                <input type="number" step="0.01" class="form-control" id="totalPaid" name="totalPaid" value="500"
-                       required>
-            </div>
-        </div>
-        <!-- 四个电表的录入行 -->
-        <div class="row mb-3">
-            <div class="col-auto align-self-center">
-                <span>1号表：</span>
-            </div>
-            <div class="col">
-                <input type="number" step="0.1" class="form-control" name="m1Reading" placeholder="本期读数"
-                       value="8500" required>
-            </div>
-            <div class="col-auto align-self-center">
-                <span>人数：</span>
-            </div>
-            <div class="col">
-                <input type="number" class="form-control" name="m1Count" placeholder="公摊人数" value="1" required>
-            </div>
-        </div>
-        <div class="row mb-3">
-            <div class="col-auto align-self-center">
-                <span>2号表：</span>
-            </div>
-            <div class="col">
-                <input type="number" step="0.1" class="form-control" name="m2Reading" placeholder="本期读数"
-                       value="10500" required>
-            </div>
-            <div class="col-auto align-self-center">
-                <span>人数：</span>
-            </div>
-            <div class="col">
-                <input type="number" class="form-control" name="m2Count" placeholder="公摊人数" value="1" required>
-            </div>
-        </div>
-        <div class="row mb-3">
-            <div class="col-auto align-self-center">
-                <span>3号表：</span>
-            </div>
-            <div class="col">
-                <input type="number" step="0.1" class="form-control" name="m3Reading" placeholder="本期读数"
-                       value="8400" required>
-            </div>
-            <div class="col-auto align-self-center">
-                <span>人数：</span>
-            </div>
-            <div class="col">
-                <input type="number" class="form-control" name="m3Count" placeholder="公摊人数" value="2" required>
-            </div>
-        </div>
-        <div class="row mb-3">
-            <div class="col-auto align-self-center">
-                <span>4号表：</span>
-            </div>
-            <div class="col">
-                <input type="number" step="0.1" class="form-control" name="m4Reading" placeholder="本期读数"
-                       value="6400" required>
-            </div>
-            <div class="col-auto align-self-center">
-                <span>人数：</span>
-            </div>
-            <div class="col">
-                <input type="number" class="form-control" name="m4Count" placeholder="公摊人数" value="1" required>
-            </div>
-        </div>
-        <div class="row mb-3">
-            <div class="col">
-                <label for="priceTier" class="form-label">单价档位</label>
-                <select class="form-select" id="priceTier" name="priceTier" required>
-                    <option value="1">第一档（￥0.617/度）</option>
-                    <option value="2">第二档（￥0.667/度）</option>
-                    <option value="3" selected>第三档（￥0.917/度）</option>
-                </select>
-                <div class="form-text">注：2025-07-18（含）之前的账单仍按￥0.600/度计算。</div>
-            </div>
-        </div>
-        <!-- 原有的提交按钮 -->
-        <button type="submit" class="btn btn-success">添加账单并测算↑</button>
-        <!-- 新增：下载元数据按钮 -->
-        <button type="button"
-                class="btn btn-secondary ms-2"
-                id="downloadDataBtn">
-            下载元数据↓
-        </button>
-    </form>
-</div>
 
 <script src="dist/js/jquery-3.7.0.min.js"></script>
 <script src="dist/js/bootstrap.js"></script>
 <script src="dist/js/bootstrap.bundle.min.js"></script>
 <script src="data/billingPeriods.js"></script>
 <script src="dist/chart.min.js"></script>
+
 <script>
     // 档位价格映射
     const TIER_PRICE_MAP = {1: 0.617, 2: 0.667, 3: 0.917};
+
+    function sumReading(reading) {
+        return reading.reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
+    }
+
+    function fmtReading(num) {
+        if (num == null || isNaN(num)) return '';
+        // 读数输入 step=0.1，最多 1 位小数；整数就不带 .0
+        return Number.isInteger(num) ? String(num) : num.toFixed(1);
+    }
 
     /**
      * 计算本期单价：
@@ -139,16 +56,16 @@
         const t = period.tier; // 默认第3档以兼容旧数据
         let tierLabel;
         if (billDate <= cutoff) {
-            return {unitPrice: 0.600, tierLabel: "一", tier: t};
+            return {unitPrice: 0.600, tierLabel: "一"};
         }
-        if (t == 1) {
+        if (t === 1) {
             tierLabel = "一";
-        } else if (t == 2) {
+        } else if (t === 2) {
             tierLabel = "二";
         } else {
             tierLabel = "三";
         }
-        return {unitPrice: TIER_PRICE_MAP[t], tierLabel: tierLabel, tier: t};
+        return {unitPrice: TIER_PRICE_MAP[t], tierLabel: tierLabel};
     }
 
     // 渲染电费表格
@@ -157,26 +74,29 @@
         container.innerHTML = '';
 
         billingPeriods.forEach((currentPeriod, idx) => {
-            const {unitPrice, tierLabel, tier} = getUnitPrice(currentPeriod);
+            const {unitPrice, tierLabel} = getUnitPrice(currentPeriod);
 
             // 跳过最后一期，因为无法再为它解析[上期数据]
             if (idx === billingPeriods.length - 1) {
                 return;
             }
-            // 构建上期读数映射，数据结构：{1号表: 5337.5, 2号表: 7995.4, 3号表: 10008.2, 4号表: 7904.9}
+
+            // 构建上期读数映射（求和后的数值）
             const previousPeriod = billingPeriods[idx + 1];
             const previousReadingMap = {};
             previousPeriod.meters.forEach(m => {
-                previousReadingMap[m.meterId] = m.currentReading;
+                previousReadingMap[m.meterId] = sumReading(m.currentReading);
             });
+
             // 一次遍历，计算所有汇总指标
             const {
                 totalPeopleCount,
                 totalMeterPaid,
                 totalEnergyUsed
             } = currentPeriod.meters.reduce((accumulator, {meterId, currentReading, peopleCount}) => {
+                const curr = sumReading(currentReading);
                 const prev = previousReadingMap[meterId];
-                const energy = currentReading - prev;
+                const energy = curr - prev;
                 accumulator.totalPeopleCount += peopleCount;
                 accumulator.totalMeterPaid += energy * unitPrice;
                 accumulator.totalEnergyUsed += energy;
@@ -186,22 +106,13 @@
                 totalMeterPaid: 0,
                 totalEnergyUsed: 0
             });
+
             // 计算[待公摊]
             const totalBillingPaid = currentPeriod.totalBillingPaid;
             const totalPublicPaid = totalBillingPaid - totalMeterPaid;
-            const isNegativePublicPaid = totalPublicPaid < 0 && false; //公摊费是否<0
-            console.log(
-                '1：billingPeriodDate=', currentPeriod.billingPeriodDate,
-                'totalBillingPaid=', totalBillingPaid,
-                'meters=', currentPeriod.meters,
-                'totalPeopleCount=', totalPeopleCount,
-                'totalMeterPaid=', totalMeterPaid.toFixed(2),
-                'totalPublicPaid=', totalPublicPaid.toFixed(3),
-                'totalEnergyUsed=', totalEnergyUsed.toFixed(1),
-                'previousReadingMap=', previousReadingMap,
-            );
+            const isNegativePublicPaid = totalPublicPaid < 0 && false; //公摊费是否<0（当前强制关闭）
 
-            //渲染表格
+            // 渲染块容器
             const block = document.createElement('div');
             block.classList.add('period-block', 'mb-4', 'result-table');
             if (idx % 2 === 0) block.classList.add('odd-period');
@@ -209,25 +120,26 @@
             // —— 标题与右侧档位信息（两端对齐） —— //
             const headerRow = document.createElement('div');
             headerRow.className = 'd-flex justify-content-between align-items-center mb-2';
-            // 左侧：标题 + 缩略图
+
             const leftWrap = document.createElement('div');
             leftWrap.className = 'd-flex align-items-center';
+
             const title = document.createElement('h1');
             title.className = 'mb-0';
             title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${currentPeriod.totalBillingPaid.toFixed(2)}`;
-
             leftWrap.appendChild(title);
 
-            // 右侧：档位徽章（历史价或第X档）
             const rightWrap = document.createElement('div');
             const tierText = `📌第<span class="tier-badge">${tierLabel}</span>档 (￥${unitPrice.toFixed(3)} / kWh)`;
             rightWrap.innerHTML = `<span class="">${tierText}</span>`;
+
             headerRow.appendChild(leftWrap);
             headerRow.appendChild(rightWrap);
             block.appendChild(headerRow);
 
             const table = document.createElement('table');
             table.classList.add('table', 'table-bordered', 'table-hover');
+
             let theadHTML = `
             <thead class="thead-dark">
               <tr>
@@ -248,65 +160,69 @@
             `;
             }
             theadHTML += `</tr></thead><tbody></tbody>`;
+
             table.innerHTML = theadHTML;
             const tbody = table.querySelector('tbody');
+
             let totalCombinePaid = 0;
             let totalRatioPaid = 0;
+
             currentPeriod.meters.forEach((meter, rowIndex) => {
                 const meterId = meter.meterId;
                 const peopleCount = meter.peopleCount;
-                const currentReading = meter.currentReading;//本期读数
-                const previousReading = previousReadingMap[meterId];//上期读数
-                const energyUsed = currentReading - previousReading;//使用度数
-                const meterPaid = energyUsed * unitPrice;//电表费
-                const sharedPaid = totalPublicPaid * peopleCount / totalPeopleCount;//公摊费
-                const combinePaid = sharedPaid + meterPaid;//按：电表费+公摊费
+
+                const currentReading = sumReading(meter.currentReading);       // ✅ 新：求和后的本期读数
+                const previousReading = previousReadingMap[meterId];           // ✅ 上期已求和
+                const energyUsed = currentReading - previousReading;
+                const meterPaid = energyUsed * unitPrice;
+                const sharedPaid = totalPublicPaid * peopleCount / totalPeopleCount;
+                const combinePaid = sharedPaid + meterPaid;
+
                 totalCombinePaid += combinePaid;
-                const ratioPaid = (energyUsed / totalEnergyUsed) * totalBillingPaid;//按：度数/总度数×电费总额
-                totalRatioPaid += ratioPaid
-                console.log(
-                    '2:meterId==', meterId,
-                    'peopleCount==', peopleCount,
-                    'currentReading==', currentReading,
-                    'previousReading==', previousReading,
-                    'energyUsed==', energyUsed,
-                    'meterPaid==', meterPaid.toFixed(3),
-                    'sharedPaid==', sharedPaid.toFixed(3),
-                    'combinePaid==', combinePaid.toFixed(2),
-                    'ratioPaid==', ratioPaid.toFixed(2),
-                    'totalBillingPaid==', totalBillingPaid,
-                    'totalPublicPaid==', totalPublicPaid.toFixed(3),
-                    'totalPeopleCount==', totalPeopleCount
-                );
-                const alias = meterAliasMap[meterId]
+
+                const ratioPaid = (energyUsed / totalEnergyUsed) * totalBillingPaid;
+                totalRatioPaid += ratioPaid;
+
+                const alias = meterAliasMap[meterId];
+
                 let rowHTML = `
                     <tr>
-                        <td><span>${meterId}</span><br><span class="th-info alias-emphasis">${alias}</span><br><span class="th-info">人数: ${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
-                        <td><span class="td-value">${previousReadingMap[meterId]}</span></td>
-                        <td><span class="td-value">${currentReading}</span></td>
-                        <td><span class="td-value">${energyUsed.toFixed(1)}</span><br><span class="th-info">${currentReading}-${previousReading}</span></td>
+                        <td>
+                            <span>${meterId}</span><br>
+                            <span class="th-info alias-emphasis">${alias || ''}</span><br>
+                            <span class="th-info">人数: ${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</span>
+                        </td>
+                        <td><span class="td-value">${fmtReading(previousReading)}</span></td>
+                        <td><span class="td-value">${fmtReading(currentReading)}</span></td>
+                        <td><span class="td-value">${energyUsed.toFixed(1)}</span><br><span class="th-info">${fmtReading(currentReading)}-${fmtReading(previousReading)}</span></td>
                         <td class="meter-paid"><span class="td-value">${meterPaid.toFixed(3)}</span><br><span class="th-info">${energyUsed.toFixed(1)}×${unitPrice}</span></td>
                 `;
+
                 // 只在第一行输出待公摊这一列，并合并纵跨 4 行
                 if (rowIndex === 0) {
                     rowHTML += `
                         <td rowspan="4" style="vertical-align: middle; text-align: center;">
-                            <span class="td-value">${totalPublicPaid.toFixed(3)}</span><br><span class="th-info">${totalBillingPaid.toFixed(2)}-${totalMeterPaid.toFixed(3)}</span>
+                            <span class="td-value">${totalPublicPaid.toFixed(3)}</span><br>
+                            <span class="th-info">${totalBillingPaid.toFixed(2)}-${totalMeterPaid.toFixed(3)}</span>
                         </td>
                     `;
                 }
+
                 rowHTML += `
                         <td class="shared-paid"><span class="td-value">${sharedPaid.toFixed(3)}</span><br><span class="th-info">${totalPublicPaid.toFixed(3)}×<sup>${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span></td>
                         <td class="combine-paid"><span class="td-value">${combinePaid.toFixed(2)}</span><br><span class="th-info">${meterPaid.toFixed(3)}+${sharedPaid > 0 ? sharedPaid.toFixed(3) : `(${sharedPaid.toFixed(3)})`}</span></td>
                 `;
+
                 if (isNegativePublicPaid) {
                     rowHTML += `
                         <td class="ratio-paid"><span class="td-value">${ratioPaid.toFixed(2)}</span><br><span class="th-info">${totalBillingPaid}×<sup>${energyUsed.toFixed(1)}</sup>&frasl;<sub>${totalEnergyUsed.toFixed(2)}</sub></span></td>
                     `;
                 }
+
                 rowHTML += `</tr>`;
                 tbody.insertAdjacentHTML('beforeend', rowHTML);
             });
+
             let totalRowHTML = `
                 <tr>
                     <td>总<span class="th-info"><br>人数: ${totalPeopleCount}</span></td>
@@ -317,17 +233,16 @@
                     <td></td>
                     <td></td>
                     <td><span class="td-value">${totalCombinePaid.toFixed(2)}</span>${Math.abs(totalCombinePaid - totalBillingPaid) <= 0.00001 ? "✔" : "✖"}</td>
-
             `;
             if (isNegativePublicPaid) {
-                totalRowHTML += `
-                <td>${totalRatioPaid.toFixed(2)}</td>
-                `;
+                totalRowHTML += `<td>${totalRatioPaid.toFixed(2)}</td>`;
             }
             totalRowHTML += `</tr>`;
+
             tbody.insertAdjacentHTML('beforeend', totalRowHTML);
             block.appendChild(table);
-            // —— 仅在 isNegativePublicPaid 时才显示提示 ——
+
+            // —— 仅在 isNegativePublicPaid 时才显示提示 —— //
             if (isNegativePublicPaid) {
                 const noteWrapper = document.createElement('div');
                 noteWrapper.className = 'alert alert-info border-0 rounded-0 mt-2';
@@ -341,11 +256,10 @@
               `;
                 block.appendChild(noteWrapper);
             }
+
             container.appendChild(block);
         });
     }
-
-    window.onload = renderElectricityTable;
 </script>
 
 <script>
@@ -354,7 +268,7 @@
     // 自定义插件：按“同一天的一组柱子”聚合，只在组中心画一次日期
     const dateLabelsPlugin = {
         id: 'dateLabelsPlugin',
-        afterDatasetsDraw(chart, args, pluginOpts) {
+        afterDatasetsDraw(chart) {
             const {ctx, scales} = chart;
             const yUsage = scales.yUsage;
             if (!yUsage) return;
@@ -384,7 +298,6 @@
 
             const baselineY = yUsage.bottom + 4; // 基线位置
             groups.forEach(({xs}, label) => {
-                // 组中心（可选：也可用平均值）
                 const centerX = xs.reduce((a, b) => a + b, 0) / xs.length;
                 ctx.fillText(label, centerX, baselineY);
             });
@@ -398,7 +311,7 @@
         const periodCount = 6;
         const lastCount = Math.min(periodCount, billingPeriods.length);
         const recentDesc = billingPeriods.slice(0, lastCount); // newest -> older
-        const ascPeriods = recentDesc.slice().reverse();       // oldest(倒数第periodCount) -> newest
+        const ascPeriods = recentDesc.slice().reverse();       // oldest -> newest
 
         const meterIds = ascPeriods[0].meters.map(m => m.meterId);
 
@@ -426,7 +339,7 @@
         let prevFirstMap = null;
         if (prevForFirst) {
             prevFirstMap = {};
-            prevForFirst.meters.forEach(m => (prevFirstMap[m.meterId] = m.currentReading));
+            prevForFirst.meters.forEach(m => (prevFirstMap[m.meterId] = sumReading(m.currentReading)));
         }
 
         // 构造折线(累计读数) & 柱(ΔkWh)
@@ -435,13 +348,14 @@
             const xDays = dateToDays(period.billingPeriodDate);
 
             const currMap = {};
-            period.meters.forEach(m => (currMap[m.meterId] = m.currentReading));
+            period.meters.forEach(m => (currMap[m.meterId] = sumReading(m.currentReading)));
 
-            // 折线：累计读数
+            // 折线：累计读数（求和后的读数）
             period.meters.forEach(m => {
+                const yVal = sumReading(m.currentReading);
                 readingPointsMap[m.meterId].push({
                     x: xDays,
-                    y: +m.currentReading.toFixed(1)
+                    y: +yVal.toFixed(1)
                 });
             });
 
@@ -453,14 +367,14 @@
                         usagePointsMap[id].push({
                             x: xDays,
                             y: +used.toFixed(1),
-                            dateLabel: period.billingPeriodDate   // 账单日期用于画标签
+                            dateLabel: period.billingPeriodDate
                         });
                     });
-                } // 没有外部上一期时，不生成柱子，也就不画该期日期
+                }
             } else {
                 const prev = ascPeriods[i - 1];
                 const prevMap = {};
-                prev.meters.forEach(m => (prevMap[m.meterId] = m.currentReading));
+                prev.meters.forEach(m => (prevMap[m.meterId] = sumReading(m.currentReading)));
                 meterIds.forEach(id => {
                     const used = currMap[id] - prevMap[id];
                     usagePointsMap[id].push({
@@ -525,7 +439,6 @@
                         type: 'linear',
                         min: xMin,
                         max: xMax,
-                        // 隐藏原有 X 轴刻度与文字
                         ticks: {display: false},
                         grid: {drawOnChartArea: true, drawTicks: false}
                     },
@@ -546,13 +459,11 @@
                     legend: {position: 'top'},
                     tooltip: {
                         callbacks: {
-                            // 提示框仍用日期，便于查看
                             title: (items) => {
                                 const ds = items[0].dataset;
                                 const i = items[0].dataIndex;
                                 const d = ds.data?.[i]?.dateLabel;
                                 if (d) return d;
-                                // 折线点没有 dateLabel，用线性刻度反推
                                 const DAY_MS = 24 * 60 * 60 * 1000;
                                 const xStart = new Date(ascPeriods[0].billingPeriodDate);
                                 const d2 = new Date(xStart.getTime() + Math.round(items[0].parsed.x) * DAY_MS);
@@ -574,116 +485,14 @@
         });
     }
 </script>
+
 <script>
-    function prefillAddForm() {
-        const form = document.getElementById('addPeriodForm');
-        if (!form || !billingPeriods || billingPeriods.length === 0) return;
-
-        const setBoth = (input, val) => {
-            input.value = val;
-            input.defaultValue = val; // 关键：更新默认值，避免 reset 回到写死值
-        };
-
-        const last = billingPeriods[0];
-        const DAY_MS = 24 * 60 * 60 * 1000;
-
-        const lastDate = new Date(last.billingPeriodDate);
-        const nextDate = new Date(lastDate.getTime() + 40 * DAY_MS);
-        const yyyy = nextDate.getFullYear();
-        const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(nextDate.getDate()).padStart(2, '0');
-        setBoth(form.billingDate, `${yyyy}-${mm}-${dd}`);
-
-        // 你也可以选择把“电费总额”同步更新为上期或清空，这里示例：保留当前值不动
-        // setBoth(form.totalPaid, form.totalPaid.value);
-
-        const lastMap = {};
-        (last.meters || []).forEach(m => lastMap[m.meterId] = m);
-
-        const inc = () => 200 + Math.random() * 80;
-        const addDelta = (base) => +(base + inc()).toFixed(1);
-
-        if (lastMap['1号表']) {
-            setBoth(form.m1Reading, addDelta(parseFloat(lastMap['1号表'].currentReading)));
-            setBoth(form.m1Count, (lastMap['1号表'].peopleCount ?? 1).toString());
-        }
-        if (lastMap['2号表']) {
-            setBoth(form.m2Reading, addDelta(parseFloat(lastMap['2号表'].currentReading)));
-            setBoth(form.m2Count, (lastMap['2号表'].peopleCount ?? 1).toString());
-        }
-        if (lastMap['3号表']) {
-            setBoth(form.m3Reading, addDelta(parseFloat(lastMap['3号表'].currentReading)));
-            setBoth(form.m3Count, (lastMap['3号表'].peopleCount ?? 1).toString());
-        }
-        if (lastMap['4号表']) {
-            setBoth(form.m4Reading, addDelta(parseFloat(lastMap['4号表'].currentReading)));
-            setBoth(form.m4Count, (lastMap['4号表'].peopleCount ?? 1).toString());
-        }
-    }
-</script>
-<!-- ↑↑↑ 表单结束 ↑↑↑ -->
-<script>
-    document.getElementById('addPeriodForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        const form = e.target;
-
-        // 取值
-        const billingDate = form.billingDate.value; // YYYY-MM-DD
-        const totalPaid = parseFloat(form.totalPaid.value);
-        const tier = form.priceTier.value;  // 获取档位
-
-        // 四个电表数据
-        const newMeters = [];
-        for (let i = 1; i <= 4; i++) {
-            const reading = parseFloat(form[`m${i}Reading`].value);
-            const count = parseInt(form[`m${i}Count`].value, 10);
-            newMeters.push({
-                meterId: `${i}号表`,
-                currentReading: reading,
-                peopleCount: count
-            });
-        }
-
-        // 构造新账单对象
-        const newPeriod = {
-            billingPeriodDate: billingDate,
-            totalBillingPaid: totalPaid,
-            tier: tier,
-            meters: newMeters
-        };
-
-        // 插入最前面，作为最新一期
-        billingPeriods.unshift(newPeriod);
-
-        // 重新渲染表格和图表
-        renderElectricityTable();
-        renderEnergyChart();
-
-        // 清空表单
-        form.reset();
-        prefillAddForm();
-    });
-    document.getElementById('downloadDataBtn').addEventListener('click', function () {
-        // 1. 序列化当前的 billingPeriods
-        const jsonStr = JSON.stringify(billingPeriods, null, 2);
-        // 2. 生成一个 Blob
-        const blob = new Blob([jsonStr], {type: 'application/json'});
-        // 3. 创建一个临时下载链接
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'billingPeriods.json'; // 下载文件名
-        // 4. 触发点击
-        a.click();
-        // 5. 清理
-        URL.revokeObjectURL(url);
-    });
     // 页面加载时渲染
     window.onload = function () {
         renderElectricityTable();
         renderEnergyChart();
-        prefillAddForm();
     };
 </script>
+
 </body>
 </html>
