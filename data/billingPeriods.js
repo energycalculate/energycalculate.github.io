@@ -16,7 +16,7 @@ const billingPeriods = [{
         },
         {
             meterId: "3号表+5号表",
-            currentReading: [8098, 581],
+            currentReading: [8679, 8617],
             peopleCount: 1
         },
         {
@@ -43,7 +43,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [8032, 561],
+                currentReading: [8593, 8617],
                 peopleCount: 1
             },
             {
@@ -70,7 +70,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7857, 550],
+                currentReading: [8407, 8617],
                 peopleCount: 1
             },
             {
@@ -97,7 +97,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7723, 535],
+                currentReading: [8258, 8617],
                 peopleCount: 1
             },
             {
@@ -124,7 +124,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7589.7, 512],
+                currentReading: [8101.7, 8617],
                 peopleCount: 1
             },
             {
@@ -151,7 +151,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7413.9, 491],
+                currentReading: [7904.9, 8617],
                 peopleCount: 1
             },
             {
@@ -178,7 +178,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7335.9, 461],
+                currentReading: [7796.9, 8617],
                 peopleCount: 1
             },
             {
@@ -205,7 +205,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7289.9, 450],
+                currentReading: [7739.9, 8617],
                 peopleCount: 1
             },
             {
@@ -232,7 +232,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7143.2, 438],
+                currentReading: [7581.2, 8617],
                 peopleCount: 1
             },
             {
@@ -259,7 +259,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "3号表+5号表",
-                currentReading: [7036.4, 430],
+                currentReading: [7466.4, 8617],
                 peopleCount: 1
             },
             {
@@ -281,7 +281,7 @@ const billingPeriods = [{
             },
             {
                 meterId: "2号表",
-                currentReading: [9717.5],
+                currentReading: [9717.5, 8617],
                 peopleCount: 3
             },
             {
