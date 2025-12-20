@@ -45,6 +45,26 @@
     }
 
     /**
+     * ✅ 新增：把“总和(分项+分项...)”拼出来
+     * - readingArr.length <= 1：只显示总和
+     * - readingArr.length > 1：显示 8593(8032+561)
+     */
+    function fmtReadingWithBreakdown(sumVal, readingArr) {
+        const sumText = fmtReading(sumVal);
+        if (!sumText) return '';
+        if (!Array.isArray(readingArr) || readingArr.length <= 1) return sumText;
+
+        const parts = readingArr
+            .map(v => fmtReading(parseFloat(v)))
+            .filter(s => s !== '');
+
+        // 如果分项都没法格式化出来，就退回只显示总和
+        if (parts.length <= 1) return sumText;
+
+        return `${sumText}<span class="th-info">(${parts.join('+')})</span>`;
+    }
+
+    /**
      * 计算本期单价：
      * - 2025-07-18（含）之前：固定 0.600
      * - 之后：按 period.tier（第1/2/3档）决定单价；如缺省则默认按第3档以保持与你现有结果一致
@@ -81,11 +101,13 @@
                 return;
             }
 
-            // 构建上期读数映射（求和后的数值）
+            // 构建上期读数映射（求和后的数值） + ✅上期读数原数组映射（用于展示加总过程）
             const previousPeriod = billingPeriods[idx + 1];
             const previousReadingMap = {};
+            const previousReadingArrMap = {};
             previousPeriod.meters.forEach(m => {
                 previousReadingMap[m.meterId] = sumReading(m.currentReading);
+                previousReadingArrMap[m.meterId] = m.currentReading;
             });
 
             // 一次遍历，计算所有汇总指标
@@ -171,9 +193,14 @@
                 const meterId = meter.meterId;
                 const peopleCount = meter.peopleCount;
 
-                const currentReading = sumReading(meter.currentReading);       // ✅ 新：求和后的本期读数
-                const previousReading = previousReadingMap[meterId];           // ✅ 上期已求和
-                const energyUsed = currentReading - previousReading;
+                const currentReadingSum = sumReading(meter.currentReading);
+                const previousReadingSum = previousReadingMap[meterId];
+
+                // ✅ 新：把“总和(分项+分项...)”拼出来
+                const currentReadingText = fmtReadingWithBreakdown(currentReadingSum, meter.currentReading);
+                const previousReadingText = fmtReadingWithBreakdown(previousReadingSum, previousReadingArrMap[meterId]);
+
+                const energyUsed = currentReadingSum - previousReadingSum;
                 const meterPaid = energyUsed * unitPrice;
                 const sharedPaid = totalPublicPaid * peopleCount / totalPeopleCount;
                 const combinePaid = sharedPaid + meterPaid;
@@ -192,9 +219,9 @@
                             <span class="th-info alias-emphasis">${alias || ''}</span><br>
                             <span class="th-info">人数: ${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</span>
                         </td>
-                        <td><span class="td-value">${fmtReading(previousReading)}</span></td>
-                        <td><span class="td-value">${fmtReading(currentReading)}</span></td>
-                        <td><span class="td-value">${energyUsed.toFixed(1)}</span><br><span class="th-info">${fmtReading(currentReading)}-${fmtReading(previousReading)}</span></td>
+                        <td><span class="td-value">${previousReadingText}</span></td>
+                        <td><span class="td-value">${currentReadingText}</span></td>
+                        <td><span class="td-value">${energyUsed.toFixed(1)}</span><br><span class="th-info">${fmtReading(currentReadingSum)}-${fmtReading(previousReadingSum)}</span></td>
                         <td class="meter-paid"><span class="td-value">${meterPaid.toFixed(3)}</span><br><span class="th-info">${energyUsed.toFixed(1)}×${unitPrice}</span></td>
                 `;
 
