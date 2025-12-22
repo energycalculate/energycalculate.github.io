@@ -35,56 +35,61 @@
     const TIER_PRICE_MAP = {1: 0.617, 2: 0.667, 3: 0.917};
 
     function sumReading(reading) {
-        return reading.reduce((acc, v) => acc + (parseFloat(v) || 0), 0);
+        return reading.reduce((acc, v) => acc + parseFloat(v), 0);
     }
 
     function fmtReading(num) {
-        if (num == null || isNaN(num)) return '';
         // 读数输入 step=0.1，最多 1 位小数；整数就不带 .0
         return Number.isInteger(num) ? String(num) : num.toFixed(1);
     }
 
     /**
-     * ✅ 新增：把“总和(分项+分项...)”拼出来
-     * - readingArr.length <= 1：只显示总和
-     * - readingArr.length > 1：显示 8593(8032+561)
+     * 显示每个表的读数
+     * 例：
+     * - [8593, 8617] => "8593+8617"
+     * - [8520]       => "8520"
      */
-    function fmtReadingWithBreakdown(sumVal, readingArr) {
-        const sumText = fmtReading(sumVal);
-        if (!sumText) return '';
-        if (!Array.isArray(readingArr) || readingArr.length <= 1) return sumText;
+    function fmtReadingParts(readingArr) {
+        return readingArr.map(v => fmtReading(parseFloat(v))).join('+');
+    }
 
-        const parts = readingArr
-            .map(v => fmtReading(parseFloat(v)))
-            .filter(s => s !== '');
+    /**
+     * 显示每个子表的“本期-上期”明细
+     * 例：
+     *  - curr=[8679,8617], prev=[8593,8617] => "(8679-8593)+(8617-8617)"
+     *  - curr=[8520], prev=[8510]           => "8520-8510"
+     */
+    function fmtDeltaBreakdown(currArr, prevArr) {
+        const len = Math.max(currArr.length, prevArr.length);
+        const pieces = [];
+        for (let i = 0; i < len; i++) {
+            const cv = parseFloat(currArr[i]);
+            const pv = parseFloat(prevArr[i]);
 
-        // 如果分项都没法格式化出来，就退回只显示总和
-        if (parts.length <= 1) return sumText;
-
-        return `${sumText}<span class="th-info">(${parts.join('+')})</span>`;
+            const cvText = fmtReading(isNaN(cv) ? 0 : cv);
+            const pvText = fmtReading(isNaN(pv) ? 0 : pv);
+            pieces.push(`(${cvText}-${pvText})`);
+        }
+        return pieces.join('+');
     }
 
     /**
      * 计算本期单价：
      * - 2025-07-18（含）之前：固定 0.600
      * - 之后：按 period.tier（第1/2/3档）决定单价；如缺省则默认按第3档以保持与你现有结果一致
-     * 返回：{ unitPrice, tierLabel, tier }
+     * 返回：{ unitPrice, tierLabel }
      */
     function getUnitPrice(period) {
         const cutoff = new Date('2025-07-18');
         const billDate = new Date(period.billingPeriodDate);
-        const t = period.tier; // 默认第3档以兼容旧数据
-        let tierLabel;
+        const t = period.tier;
         if (billDate <= cutoff) {
             return {unitPrice: 0.600, tierLabel: "一"};
         }
-        if (t === 1) {
-            tierLabel = "一";
-        } else if (t === 2) {
-            tierLabel = "二";
-        } else {
-            tierLabel = "三";
-        }
+        let tierLabel;
+        if (t === 1) tierLabel = "一";
+        else if (t === 2) tierLabel = "二";
+        else tierLabel = "三";
         return {unitPrice: TIER_PRICE_MAP[t], tierLabel: tierLabel};
     }
 
@@ -101,7 +106,7 @@
                 return;
             }
 
-            // 构建上期读数映射（求和后的数值） + ✅上期读数原数组映射（用于展示加总过程）
+            // 上期映射：求和后的数值 + 原数组（用于展示明细）
             const previousPeriod = billingPeriods[idx + 1];
             const previousReadingMap = {};
             const previousReadingArrMap = {};
@@ -110,7 +115,7 @@
                 previousReadingArrMap[m.meterId] = m.currentReading;
             });
 
-            // 一次遍历，计算所有汇总指标
+            // 一次遍历，计算所有汇总指标（仍按你原来的“4行：1/2/3+5/4”来算钱）
             const {
                 totalPeopleCount,
                 totalMeterPaid,
@@ -129,17 +134,17 @@
                 totalEnergyUsed: 0
             });
 
-            // 计算[待公摊]
+            // 待公摊
             const totalBillingPaid = currentPeriod.totalBillingPaid;
             const totalPublicPaid = totalBillingPaid - totalMeterPaid;
-            const isNegativePublicPaid = totalPublicPaid < 0 && false; //公摊费是否<0（当前强制关闭）
+            const isNegativePublicPaid = totalPublicPaid < 0 && false; // 公摊费是否<0（当前强制关闭）
 
             // 渲染块容器
             const block = document.createElement('div');
             block.classList.add('period-block', 'mb-4', 'result-table');
             if (idx % 2 === 0) block.classList.add('odd-period');
 
-            // —— 标题与右侧档位信息（两端对齐） —— //
+            // 标题与右侧档位信息
             const headerRow = document.createElement('div');
             headerRow.className = 'd-flex justify-content-between align-items-center mb-2';
 
@@ -196,21 +201,26 @@
                 const currentReadingSum = sumReading(meter.currentReading);
                 const previousReadingSum = previousReadingMap[meterId];
 
-                // ✅ 新：把“总和(分项+分项...)”拼出来
-                const currentReadingText = fmtReadingWithBreakdown(currentReadingSum, meter.currentReading);
-                const previousReadingText = fmtReadingWithBreakdown(previousReadingSum, previousReadingArrMap[meterId]);
+                // ✅ 改：上期/本期读数只显示分项（不显示求和结果）
+                const currentReadingText = fmtReadingParts(meter.currentReading);
+                const previousReadingText = fmtReadingParts(previousReadingArrMap[meterId]);
 
                 const energyUsed = currentReadingSum - previousReadingSum;
                 const meterPaid = energyUsed * unitPrice;
                 const sharedPaid = totalPublicPaid * peopleCount / totalPeopleCount;
                 const combinePaid = sharedPaid + meterPaid;
-
                 totalCombinePaid += combinePaid;
 
                 const ratioPaid = (energyUsed / totalEnergyUsed) * totalBillingPaid;
                 totalRatioPaid += ratioPaid;
 
                 const alias = meterAliasMap[meterId];
+
+                // ✅ 改：度数kWh 第二行显示每个子表的 (本期-上期) 明细
+                const deltaBreakdown = fmtDeltaBreakdown(
+                    meter.currentReading,
+                    previousReadingArrMap[meterId]
+                );
 
                 let rowHTML = `
                     <tr>
@@ -221,14 +231,17 @@
                         </td>
                         <td><span class="td-value">${previousReadingText}</span></td>
                         <td><span class="td-value">${currentReadingText}</span></td>
-                        <td><span class="td-value">${energyUsed.toFixed(1)}</span><br><span class="th-info">${fmtReading(currentReadingSum)}-${fmtReading(previousReadingSum)}</span></td>
+                        <td>
+                            <span class="td-value">${energyUsed.toFixed(1)}</span><br>
+                            <span class="th-info">${deltaBreakdown}</span>
+                        </td>
                         <td class="meter-paid"><span class="td-value">${meterPaid.toFixed(3)}</span><br><span class="th-info">${energyUsed.toFixed(1)}×${unitPrice}</span></td>
                 `;
 
-                // 只在第一行输出待公摊这一列，并合并纵跨 4 行
+                // 只在第一行输出待公摊这一列，并合并纵跨“本期电表行数”
                 if (rowIndex === 0) {
                     rowHTML += `
-                        <td rowspan="4" style="vertical-align: middle; text-align: center;">
+                        <td rowspan="${currentPeriod.meters.length}" style="vertical-align: middle; text-align: center;">
                             <span class="td-value">${totalPublicPaid.toFixed(3)}</span><br>
                             <span class="th-info">${totalBillingPaid.toFixed(2)}-${totalMeterPaid.toFixed(3)}</span>
                         </td>
@@ -333,6 +346,33 @@
         }
     };
 
+    /**
+     * Chart：把 period.meters 里的“3号表+5号表”拆成“3号表”“5号表”
+     */
+    function getChartReadingsMap(period) {
+        const map = {};
+        period.meters.forEach(m => {
+            const id = m.meterId;
+            const arr = m.currentReading;
+            console.log("id==" + id + ",arr==" + arr)
+
+            // 拆分：3号表+5号表 => 3号表 / 5号表
+            if (id.includes('+')) {
+                const ids = id.split('+').map(s => s.trim()).filter(Boolean);
+                ids.forEach((sid, idx) => {
+                    const v = parseFloat(arr[idx]);
+                    if (!isNaN(v)) map[sid] = v;
+                });
+                return;
+            }
+
+            // 常规单表：取第1个读数
+            const v = parseFloat(arr[0]);
+            if (!isNaN(v)) map[id] = v;
+        });
+        return map;
+    }
+
     function renderEnergyChart() {
         // 仅保留最近periodCount期（index 0 是最新）
         const periodCount = 6;
@@ -340,7 +380,8 @@
         const recentDesc = billingPeriods.slice(0, lastCount); // newest -> older
         const ascPeriods = recentDesc.slice().reverse();       // oldest -> newest
 
-        const meterIds = ascPeriods[0].meters.map(m => m.meterId);
+        // ✅ 改：固定显示 5 个表（3号/5号分开）
+        const meterIds = ['1号表', '2号表', '3号表', '4号表', '5号表'];
 
         // X 轴范围：线性时间轴（距 xStart 的天数）
         const DAY_MS = 24 * 60 * 60 * 1000;
@@ -350,7 +391,6 @@
         const xEnd = endRef;
         const xMin = 0;
         const xMax = Math.ceil((xEnd - xStart) / DAY_MS);
-
         const dateToDays = (dateStr) => (new Date(dateStr) - xStart) / DAY_MS;
 
         // 数据容器
@@ -363,34 +403,30 @@
 
         // 若要给“倒数第periodCount期”也计算用电量，需要窗口外上一期（更早一期）
         const prevForFirst = billingPeriods.length > lastCount ? billingPeriods[lastCount] : null;
-        let prevFirstMap = null;
-        if (prevForFirst) {
-            prevFirstMap = {};
-            prevForFirst.meters.forEach(m => (prevFirstMap[m.meterId] = sumReading(m.currentReading)));
-        }
+        const prevFirstMap = prevForFirst ? getChartReadingsMap(prevForFirst) : null;
 
         // 构造折线(累计读数) & 柱(ΔkWh)
         for (let i = 0; i < ascPeriods.length; i++) {
             const period = ascPeriods[i];
             const xDays = dateToDays(period.billingPeriodDate);
 
-            const currMap = {};
-            period.meters.forEach(m => (currMap[m.meterId] = sumReading(m.currentReading)));
+            const currMap = getChartReadingsMap(period);
 
-            // 折线：累计读数（求和后的读数）
-            period.meters.forEach(m => {
-                const yVal = sumReading(m.currentReading);
-                readingPointsMap[m.meterId].push({
-                    x: xDays,
-                    y: +yVal.toFixed(1)
-                });
+            // 折线：累计读数（每个单表）
+            meterIds.forEach(id => {
+                const yVal = currMap[id];
+                if (yVal == null || isNaN(yVal)) return;
+                readingPointsMap[id].push({x: xDays, y: +(+yVal).toFixed(1)});
             });
 
             // ΔkWh：i==0 用窗口外上一期（若有）；i>0 用 ascPeriods[i-1]
             if (i === 0) {
                 if (prevFirstMap) {
                     meterIds.forEach(id => {
-                        const used = currMap[id] - prevFirstMap[id];
+                        const curr = currMap[id];
+                        const prev = prevFirstMap[id];
+                        if (curr == null || prev == null || isNaN(curr) || isNaN(prev)) return;
+                        const used = curr - prev;
                         usagePointsMap[id].push({
                             x: xDays,
                             y: +used.toFixed(1),
@@ -399,11 +435,14 @@
                     });
                 }
             } else {
-                const prev = ascPeriods[i - 1];
-                const prevMap = {};
-                prev.meters.forEach(m => (prevMap[m.meterId] = sumReading(m.currentReading)));
+                const prevPeriod = ascPeriods[i - 1];
+                const prevMap = getChartReadingsMap(prevPeriod);
+
                 meterIds.forEach(id => {
-                    const used = currMap[id] - prevMap[id];
+                    const curr = currMap[id];
+                    const prev = prevMap[id];
+                    if (curr == null || prev == null || isNaN(curr) || isNaN(prev)) return;
+                    const used = curr - prev;
                     usagePointsMap[id].push({
                         x: xDays,
                         y: +used.toFixed(1),
@@ -413,10 +452,28 @@
             }
         }
 
-        // 颜色
-        const lineColors = ['rgb(255,99,132)', 'rgb(54,162,235)', 'rgb(75,192,192)', 'rgb(255,159,64)'];
-        const barFills = ['rgba(255,99,132,0.25)', 'rgba(54,162,235,0.25)', 'rgba(75,192,192,0.25)', 'rgba(255,159,64,0.25)'];
-        const barBorders = ['rgba(255,99,132,0.9)', 'rgba(54,162,235,0.9)', 'rgba(75,192,192,0.9)', 'rgba(255,159,64,0.9)'];
+        // 颜色（扩展到 5 组）
+        const lineColors = [
+            'rgb(255,99,132)',
+            'rgb(54,162,235)',
+            'rgb(75,192,192)',
+            'rgb(255,159,64)',
+            'rgb(153,102,255)'
+        ];
+        const barFills = [
+            'rgba(255,99,132,0.25)',
+            'rgba(54,162,235,0.25)',
+            'rgba(75,192,192,0.25)',
+            'rgba(255,159,64,0.25)',
+            'rgba(153,102,255,0.25)'
+        ];
+        const barBorders = [
+            'rgba(255,99,132,0.9)',
+            'rgba(54,162,235,0.9)',
+            'rgba(75,192,192,0.9)',
+            'rgba(255,159,64,0.9)',
+            'rgba(153,102,255,0.9)'
+        ];
 
         // 组装 datasets
         const datasets = [];
@@ -460,7 +517,7 @@
                 maintainAspectRatio: false,
                 parsing: false,
                 interaction: {mode: 'nearest', intersect: false},
-                layout: {padding: {bottom: 22}}, // 给日期标签留空间
+                layout: {padding: {bottom: 22}},
                 scales: {
                     x: {
                         type: 'linear',
@@ -491,9 +548,10 @@
                                 const i = items[0].dataIndex;
                                 const d = ds.data?.[i]?.dateLabel;
                                 if (d) return d;
+
                                 const DAY_MS = 24 * 60 * 60 * 1000;
-                                const xStart = new Date(ascPeriods[0].billingPeriodDate);
-                                const d2 = new Date(xStart.getTime() + Math.round(items[0].parsed.x) * DAY_MS);
+                                const xStart2 = new Date(ascPeriods[0].billingPeriodDate);
+                                const d2 = new Date(xStart2.getTime() + Math.round(items[0].parsed.x) * DAY_MS);
                                 const yyyy = d2.getFullYear();
                                 const mm = String(d2.getMonth() + 1).padStart(2, '0');
                                 const dd = String(d2.getDate()).padStart(2, '0');

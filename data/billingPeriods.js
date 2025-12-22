@@ -268,33 +268,6 @@ const billingPeriods = [{
                 peopleCount: 1
             },
         ]
-    },
-    {
-        billingPeriodDate: "2024-12-17",
-        totalBillingPaid: 380.8,
-        tier: 1,
-        meters: [
-            {
-                meterId: "1号表",
-                currentReading: [7706],
-                peopleCount: 1
-            },
-            {
-                meterId: "2号表",
-                currentReading: [9717.5, 8617],
-                peopleCount: 3
-            },
-            {
-                meterId: "3号表+5号表",
-                currentReading: [7281],
-                peopleCount: 1
-            },
-            {
-                meterId: "4号表",
-                currentReading: [4331],
-                peopleCount: 1
-            },
-        ]
     }];
 
 const meterAliasMap = {
