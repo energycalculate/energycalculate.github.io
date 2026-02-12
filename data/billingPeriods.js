@@ -1,6 +1,34 @@
 //读表数据
 const billingPeriods = [
     {
+        billingPeriodDate: "2026-02-12",
+        totalBillingPaid: 295,
+        tier: 1,
+        meters: [
+            {
+                meterId: "1号表",
+                currentReading: [8718],
+                peopleCount: 1
+            },
+            {
+                meterId: "2号表",
+                currentReading: [10658],
+                peopleCount: 2
+            },
+            {
+                meterId: "3号表+5号表",
+                currentReading: [8953, 8624],
+                peopleCount: 1
+            },
+            {
+                meterId: "4号表",
+                currentReading: [7606],
+                peopleCount: 1
+            },
+        ]
+    },
+
+    {
         billingPeriodDate: "2026-01-04",
         totalBillingPaid: 744.6,
         tier: 3,
