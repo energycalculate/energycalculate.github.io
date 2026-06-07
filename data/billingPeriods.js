@@ -1,6 +1,34 @@
 //读表数据
 const billingPeriods = [
     {
+        billingPeriodDate: "2026-06-07",
+        totalBillingPaid: 199.1,
+        tier: 1,
+        meters: [
+            {
+                meterId: "1号表",
+                currentReading: [8945],
+                peopleCount: 1.5
+            },
+            {
+                meterId: "2号表",
+                currentReading: [10800],
+                peopleCount: 1.5
+            },
+            {
+                meterId: "3号表+5号表",
+                currentReading: [9275, 8667],
+                peopleCount: 1
+            },
+            {
+                meterId: "4号表",
+                currentReading: [7784],
+                peopleCount: 1
+            },
+        ]
+    },
+
+    {
         billingPeriodDate: "2026-05-08",
         totalBillingPaid: 241.3,
         tier: 1,
@@ -415,5 +443,5 @@ const meterAliasMap = {
     "1号表": "小韩家",
     "2号表": "羊阿姨",
     "3号表+5号表": "成哥家",
-    "4号表": "榴莲猫主人"
+    "4号表": "何哥家"
 };
