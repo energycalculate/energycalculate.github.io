@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>水费计算器</title>
+    <link rel="stylesheet" href="dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="dist/css/161125322007.css">
+</head>
+<body>
+
+<div class="container mt-3 text-center">
+    <a href="power.html">⚡ 电费</a>
+    <span class="mx-2">|</span>
+    <a href="water.html">💧 水费</a>
+</div>
+
+<h1 class="text-center my-5">水费计算器</h1>
+
+<div class="container result-table">
+    <div style="position: relative; width: 100%; height: 400px;">
+        <canvas id="waterChart"></canvas>
+    </div>
+</div>
+
+<br>
+
+<div class="container">
+    <div id="waterTable"></div>
+</div>
+
+<br>
+
+<script src="dist/js/jquery-3.7.0.min.js"></script>
+<script src="dist/js/bootstrap.js"></script>
+<script src="dist/js/bootstrap.bundle.min.js"></script>
+<script src="data/water.js"></script>
+<script src="dist/chart.min.js"></script>
+
+<script>
+    // 渲染水费表格：每期独立，按人数比例分摊
+    function renderWaterTable() {
+        const container = document.getElementById('waterTable');
+        container.innerHTML = '';
+
+        waterBillingPeriods.forEach((period, idx) => {
+            const totalBillingPaid = period.totalBillingPaid;
+            const totalPeopleCount = period.households.reduce((acc, h) => acc + h.peopleCount, 0);
+
+            // 渲染块容器
+            const block = document.createElement('div');
+            block.classList.add('period-block', 'mb-4', 'result-table');
+            if (idx % 2 === 0) block.classList.add('odd-period');
+
+            // 标题
+            const headerRow = document.createElement('div');
+            headerRow.className = 'd-flex justify-content-between align-items-center mb-2';
+
+            const title = document.createElement('h1');
+            title.className = 'mb-0';
+            title.textContent = `帐单日期：${period.billingPeriodDate} 水费总额￥：${totalBillingPaid.toFixed(2)}`;
+            headerRow.appendChild(title);
+            block.appendChild(headerRow);
+
+            const table = document.createElement('table');
+            table.classList.add('table', 'table-bordered', 'table-hover');
+
+            table.innerHTML = `
+            <thead class="thead-dark">
+              <tr>
+                <th>户</th>
+                <th>人数</th>
+                <th>分摊比例<br><span class="th-info"><sup>人数</sup>&frasl;<sub>总人数</sub></span></th>
+                <th>分摊费用￥<br><span class="th-info">水费总额×<sup>人数</sup>&frasl;<sub>总人数</sub></span></th>
+              </tr>
+            </thead><tbody></tbody>`;
+            const tbody = table.querySelector('tbody');
+
+            let totalSharedPaid = 0;
+
+            period.households.forEach(({name, peopleCount}) => {
+                const ratio = peopleCount / totalPeopleCount;
+                const sharedPaid = totalBillingPaid * ratio;
+                totalSharedPaid += sharedPaid;
+
+                const rowHTML = `
+                    <tr>
+                        <td><span class="th-info alias-emphasis">${name}</span></td>
+                        <td><span class="td-value">${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</span></td>
+                        <td>
+                            <span class="td-value">${(ratio * 100).toFixed(1)}%</span><br>
+                            <span class="th-info"><sup>${peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span>
+                        </td>
+                        <td class="combine-paid">
+                            <span class="td-value">${sharedPaid.toFixed(2)}</span><br>
+                            <span class="th-info">${totalBillingPaid.toFixed(2)}×<sup>${peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', rowHTML);
+            });
+
+            const totalRowHTML = `
+                <tr>
+                    <td>总</td>
+                    <td><span class="td-value">${totalPeopleCount}</span></td>
+                    <td></td>
+                    <td><span class="td-value">${totalSharedPaid.toFixed(2)}</span>${Math.abs(totalSharedPaid - totalBillingPaid) <= 0.00001 ? "✔" : "✖"}</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', totalRowHTML);
+
+            block.appendChild(table);
+            container.appendChild(block);
+        });
+    }
+</script>
+
+<script>
+    let waterChartInstance = null;
+
+    function renderWaterChart() {
+        // 仅保留最近periodCount期（index 0 是最新）
+        const periodCount = 6;
+        const lastCount = Math.min(periodCount, waterBillingPeriods.length);
+        const ascPeriods = waterBillingPeriods.slice(0, lastCount).reverse(); // oldest -> newest
+
+        const labels = ascPeriods.map(p => p.billingPeriodDate);
+
+        // 收集所有出现过的户名（保持首次出现顺序）
+        const householdNames = [];
+        ascPeriods.forEach(p => {
+            p.households.forEach(h => {
+                if (!householdNames.includes(h.name)) householdNames.push(h.name);
+            });
+        });
+
+        const barFills = [
+            'rgba(255,99,132,0.25)',
+            'rgba(54,162,235,0.25)',
+            'rgba(75,192,192,0.25)',
+            'rgba(255,159,64,0.25)',
+            'rgba(153,102,255,0.25)'
+        ];
+        const barBorders = [
+            'rgba(255,99,132,0.9)',
+            'rgba(54,162,235,0.9)',
+            'rgba(75,192,192,0.9)',
+            'rgba(255,159,64,0.9)',
+            'rgba(153,102,255,0.9)'
+        ];
+
+        // 每户一个柱状 dataset：值 = 该期分摊费用
+        const datasets = householdNames.map((name, i) => ({
+            label: name,
+            type: 'bar',
+            data: ascPeriods.map(p => {
+                const totalPeople = p.households.reduce((acc, h) => acc + h.peopleCount, 0);
+                const h = p.households.find(x => x.name === name);
+                if (!h) return null;
+                return +(p.totalBillingPaid * h.peopleCount / totalPeople).toFixed(2);
+            }),
+            borderWidth: 1,
+            borderColor: barBorders[i % barBorders.length],
+            backgroundColor: barFills[i % barFills.length],
+        }));
+
+        if (waterChartInstance) waterChartInstance.destroy();
+
+        const ctx = document.getElementById('waterChart').getContext('2d');
+        waterChartInstance = new Chart(ctx, {
+            data: {labels, datasets},
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {mode: 'nearest', intersect: false},
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {display: true, text: '金额￥'}
+                    }
+                },
+                plugins: {
+                    title: {display: true, text: '近' + periodCount + '期水费分摊变化'},
+                    legend: {position: 'top'},
+                    tooltip: {
+                        callbacks: {
+                            label: (item) => `${item.dataset.label || ''}: ￥${item.parsed.y}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+<script>
+    // 页面加载时渲染
+    window.onload = function () {
+        renderWaterTable();
+        renderWaterChart();
+    };
+</script>
+
+</body>
+</html>

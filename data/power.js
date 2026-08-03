@@ -1,5 +1,5 @@
 //读表数据
-const billingPeriods = [
+const powerBillingPeriods = [
     {
         billingPeriodDate: "2026-07-06",
         totalBillingPaid: 249.1,
