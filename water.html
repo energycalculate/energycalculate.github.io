@@ -5,6 +5,13 @@
     <title>水费计算器</title>
     <link rel="stylesheet" href="dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="dist/css/161125322007.css">
+    <style>
+        /* 本页表头配色（水） */
+        .table .thead-dark th {
+            background-color: #74caff;
+            border-color: #7582fe;
+        }
+    </style>
 </head>
 <body>
 
@@ -57,7 +64,7 @@
 
             const title = document.createElement('h1');
             title.className = 'mb-0';
-            title.textContent = `帐单日期：${period.billingPeriodDate} 水费总额￥：${totalBillingPaid.toFixed(2)}`;
+            title.textContent = `💧帐单日期：${period.billingPeriodDate} 水费总额￥：${totalBillingPaid.toFixed(2)}`;
             headerRow.appendChild(title);
             block.appendChild(headerRow);
 

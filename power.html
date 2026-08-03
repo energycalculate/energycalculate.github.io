@@ -5,6 +5,13 @@
     <title>电费计算器</title>
     <link rel="stylesheet" href="dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="dist/css/161125322007.css">
+    <style>
+        /* 本页表头配色（电） */
+        .table .thead-dark th {
+            background-color: #f66e48;
+            border-color: #bb5145;
+        }
+    </style>
 </head>
 <body>
 
@@ -160,7 +167,7 @@
 
             const title = document.createElement('h1');
             title.className = 'mb-0';
-            title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${currentPeriod.totalBillingPaid.toFixed(2)}`;
+            title.textContent = `⚡帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${currentPeriod.totalBillingPaid.toFixed(2)}`;
             leftWrap.appendChild(title);
 
             const rightWrap = document.createElement('div');
