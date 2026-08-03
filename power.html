@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>电费计算器</title>
+    <link rel="stylesheet" href="dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="dist/css/161125322007.css">
+</head>
+<body>
+
+<div class="container mt-3 text-center">
+    <a href="power.html">⚡ 电费</a>
+    <span class="mx-2">|</span>
+    <a href="water.html">💧 水费</a>
+</div>
+
+<h1 class="text-center my-5">电费计算器</h1>
+
+<!-- 底部 Canvas 保持不变 -->
+<div class="container result-table">
+    <div style="position: relative; width: 100%; height: 400px;">
+        <canvas id="powerChart"></canvas>
+    </div>
+</div>
+
+<br>
+
+<div class="container">
+    <div id="powerTable"></div>
+</div>
+
+<br>
+
+<script src="dist/js/jquery-3.7.0.min.js"></script>
+<script src="dist/js/bootstrap.js"></script>
+<script src="dist/js/bootstrap.bundle.min.js"></script>
+<script src="data/power.js"></script>
+<script src="dist/chart.min.js"></script>
+
+<script>
+    // 档位价格映射
+    const TIER_PRICE_MAP = {1: 0.617, 2: 0.667, 3: 0.917};
+
+    function sumReading(reading) {
+        return reading.reduce((acc, v) => acc + parseFloat(v), 0);
+    }
+
+    function fmtReading(num) {
+        // 读数输入 step=0.1，最多 1 位小数；整数就不带 .0
+        return Number.isInteger(num) ? String(num) : num.toFixed(1);
+    }
+
+    /**
+     * 显示每个表的读数
+     * 例：
+     * - [8593, 8617] => "8593+8617"
+     * - [8520]       => "8520"
+     */
+    function fmtReadingParts(readingArr) {
+        return readingArr.map(v => fmtReading(parseFloat(v))).join('+');
+    }
+
+    /**
+     * 显示每个子表的“本期-上期”明细
+     * 例：
+     *  - curr=[8679,8617], prev=[8593,8617] => "(8679-8593)+(8617-8617)"
+     *  - curr=[8520], prev=[8510]           => "8520-8510"
+     */
+    function fmtDeltaBreakdown(currArr, prevArr) {
+        const len = Math.max(currArr.length, prevArr.length);
+        const pieces = [];
+        for (let i = 0; i < len; i++) {
+            const cv = parseFloat(currArr[i]);
+            const pv = parseFloat(prevArr[i]);
+
+            const cvText = fmtReading(isNaN(cv) ? 0 : cv);
+            const pvText = fmtReading(isNaN(pv) ? 0 : pv);
+            pieces.push(`(${cvText}-${pvText})`);
+        }
+        return pieces.join('+');
+    }
+
+    /**
+     * 计算本期单价：
+     * - 2025-07-18（含）之前：固定 0.600
+     * - 之后：按 period.tier（第1/2/3档）决定单价；如缺省则默认按第3档以保持与你现有结果一致
+     * 返回：{ unitPrice, tierLabel }
+     */
+    function getUnitPrice(period) {
+        const cutoff = new Date('2025-07-18');
+        const billDate = new Date(period.billingPeriodDate);
+        const t = period.tier;
+        if (billDate <= cutoff) {
+            return {unitPrice: 0.600, tierLabel: "一"};
+        }
+        let tierLabel;
+        if (t === 1) tierLabel = "一";
+        else if (t === 2) tierLabel = "二";
+        else tierLabel = "三";
+        return {unitPrice: TIER_PRICE_MAP[t], tierLabel: tierLabel};
+    }
+
+    // 渲染电费表格
+    function renderPowerTable() {
+        const container = document.getElementById('powerTable');
+        container.innerHTML = '';
+
+        powerBillingPeriods.forEach((currentPeriod, idx) => {
+            const {unitPrice, tierLabel} = getUnitPrice(currentPeriod);
+
+            // 跳过最后一期，因为无法再为它解析[上期数据]
+            if (idx === powerBillingPeriods.length - 1) {
+                return;
+            }
+
+            // 上期映射：求和后的数值 + 原数组（用于展示明细）
+            const previousPeriod = powerBillingPeriods[idx + 1];
+            const previousReadingMap = {};
+            const previousReadingArrMap = {};
+            previousPeriod.meters.forEach(m => {
+                previousReadingMap[m.meterId] = sumReading(m.currentReading);
+                previousReadingArrMap[m.meterId] = m.currentReading;
+            });
+
+            // 一次遍历，计算所有汇总指标（仍按你原来的“4行：1/2/3+5/4”来算钱）
+            const {
+                totalPeopleCount,
+                totalMeterPaid,
+                totalEnergyUsed
+            } = currentPeriod.meters.reduce((accumulator, {meterId, currentReading, peopleCount}) => {
+                const curr = sumReading(currentReading);
+                const prev = previousReadingMap[meterId];
+                const energy = curr - prev;
+                accumulator.totalPeopleCount += peopleCount;
+                accumulator.totalMeterPaid += energy * unitPrice;
+                accumulator.totalEnergyUsed += energy;
+                return accumulator;
+            }, {
+                totalPeopleCount: 0,
+                totalMeterPaid: 0,
+                totalEnergyUsed: 0
+            });
+
+            // 待公摊
+            const totalBillingPaid = currentPeriod.totalBillingPaid;
+            const totalPublicPaid = totalBillingPaid - totalMeterPaid;
+            const isNegativePublicPaid = totalPublicPaid < 0 && false; // 公摊费是否<0（当前强制关闭）
+
+            // 渲染块容器
+            const block = document.createElement('div');
+            block.classList.add('period-block', 'mb-4', 'result-table');
+            if (idx % 2 === 0) block.classList.add('odd-period');
+
+            // 标题与右侧档位信息
+            const headerRow = document.createElement('div');
+            headerRow.className = 'd-flex justify-content-between align-items-center mb-2';
+
+            const leftWrap = document.createElement('div');
+            leftWrap.className = 'd-flex align-items-center';
+
+            const title = document.createElement('h1');
+            title.className = 'mb-0';
+            title.textContent = `帐单日期：${currentPeriod.billingPeriodDate} 电费总额￥：${currentPeriod.totalBillingPaid.toFixed(2)}`;
+            leftWrap.appendChild(title);
+
+            const rightWrap = document.createElement('div');
+            const tierText = `📌第<span class="tier-badge">${tierLabel}</span>档 (￥${unitPrice.toFixed(3)} / kWh)`;
+            rightWrap.innerHTML = `<span class="">${tierText}</span>`;
+
+            headerRow.appendChild(leftWrap);
+            headerRow.appendChild(rightWrap);
+            block.appendChild(headerRow);
+
+            const table = document.createElement('table');
+            table.classList.add('table', 'table-bordered', 'table-hover');
+
+            let theadHTML = `
+            <thead class="thead-dark">
+              <tr>
+                <th>电表</th>
+                <th>上期读数</th>
+                <th>本期读数</th>
+                <th>度数kWh<br><span class="th-info">本期读数-上期读数</span></th>
+                <th>电表费￥<br><span class="th-info">度数×<a href="https://m.sh.bendibao.com/news/265282.html" target="_blank">${unitPrice}</a></span></th>
+                <th>待公摊￥<br><span class="th-info">电费总额-总电表费</span></th>
+                <th>公摊费￥<br><span class="th-info">待公摊×<sup>人数</sup>&frasl;<sub>总人数</sub></span></th>
+                <th>总费用￥<br><span class="th-info">电表费+公摊费</span></th>
+            `;
+            if (isNegativePublicPaid) {
+                theadHTML += `
+                <th>总费用￥<br><span class="th-info">按用电比，公摊费<0时使用</span><br>
+                    <span class="th-info">电费总额×<sup>度数</sup>&frasl;<sub>总度数</sub></span>
+                </th>
+            `;
+            }
+            theadHTML += `</tr></thead><tbody></tbody>`;
+
+            table.innerHTML = theadHTML;
+            const tbody = table.querySelector('tbody');
+
+            let totalCombinePaid = 0;
+            let totalRatioPaid = 0;
+
+            currentPeriod.meters.forEach((meter, rowIndex) => {
+                const meterId = meter.meterId;
+                const peopleCount = meter.peopleCount;
+
+                const currentReadingSum = sumReading(meter.currentReading);
+                const previousReadingSum = previousReadingMap[meterId];
+
+                // ✅ 改：上期/本期读数只显示分项（不显示求和结果）
+                const currentReadingText = fmtReadingParts(meter.currentReading);
+                const previousReadingText = fmtReadingParts(previousReadingArrMap[meterId]);
+
+                const energyUsed = currentReadingSum - previousReadingSum;
+                const meterPaid = energyUsed * unitPrice;
+                const sharedPaid = totalPublicPaid * peopleCount / totalPeopleCount;
+                const combinePaid = sharedPaid + meterPaid;
+                totalCombinePaid += combinePaid;
+
+                const ratioPaid = (energyUsed / totalEnergyUsed) * totalBillingPaid;
+                totalRatioPaid += ratioPaid;
+
+                const alias = meterAliasMap[meterId];
+
+                // ✅ 改：度数kWh 第二行显示每个子表的 (本期-上期) 明细
+                const deltaBreakdown = fmtDeltaBreakdown(
+                    meter.currentReading,
+                    previousReadingArrMap[meterId]
+                );
+
+                let rowHTML = `
+                    <tr>
+                        <td>
+                            <span>${meterId}</span><br>
+                            <span class="th-info alias-emphasis">${alias || ''}</span><br>
+                            <span class="th-info">人数: ${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</span>
+                        </td>
+                        <td><span class="td-value">${previousReadingText}</span></td>
+                        <td><span class="td-value">${currentReadingText}</span></td>
+                        <td>
+                            <span class="td-value">${energyUsed.toFixed(1)}</span><br>
+                            <span class="th-info">${deltaBreakdown}</span>
+                        </td>
+                        <td class="meter-paid"><span class="td-value">${meterPaid.toFixed(3)}</span><br><span class="th-info">${energyUsed.toFixed(1)}×${unitPrice}</span></td>
+                `;
+
+                // 只在第一行输出待公摊这一列，并合并纵跨“本期电表行数”
+                if (rowIndex === 0) {
+                    rowHTML += `
+                        <td rowspan="${currentPeriod.meters.length}" style="vertical-align: middle; text-align: center;">
+                            <span class="td-value">${totalPublicPaid.toFixed(3)}</span><br>
+                            <span class="th-info">${totalBillingPaid.toFixed(2)}-${totalMeterPaid.toFixed(3)}</span>
+                        </td>
+                    `;
+                }
+
+                rowHTML += `
+                        <td class="shared-paid"><span class="td-value">${sharedPaid.toFixed(3)}</span><br><span class="th-info">${totalPublicPaid.toFixed(3)}×<sup>${peopleCount > 1 ? `<span class="people-count-emphasis">${peopleCount}</span>` : peopleCount}</sup>&frasl;<sub>${totalPeopleCount}</sub></span></td>
+                        <td class="combine-paid"><span class="td-value">${combinePaid.toFixed(2)}</span><br><span class="th-info">${meterPaid.toFixed(3)}+${sharedPaid > 0 ? sharedPaid.toFixed(3) : `(${sharedPaid.toFixed(3)})`}</span></td>
+                `;
+
+                if (isNegativePublicPaid) {
+                    rowHTML += `
+                        <td class="ratio-paid"><span class="td-value">${ratioPaid.toFixed(2)}</span><br><span class="th-info">${totalBillingPaid}×<sup>${energyUsed.toFixed(1)}</sup>&frasl;<sub>${totalEnergyUsed.toFixed(2)}</sub></span></td>
+                    `;
+                }
+
+                rowHTML += `</tr>`;
+                tbody.insertAdjacentHTML('beforeend', rowHTML);
+            });
+
+            let totalRowHTML = `
+                <tr>
+                    <td>总<span class="th-info"><br>人数: ${totalPeopleCount}</span></td>
+                    <td></td>
+                    <td></td>
+                    <td><span class="td-value">${totalEnergyUsed.toFixed(1)}</span></td>
+                    <td><span class="td-value">${totalMeterPaid.toFixed(3)}</span></td>
+                    <td></td>
+                    <td></td>
+                    <td><span class="td-value">${totalCombinePaid.toFixed(2)}</span>${Math.abs(totalCombinePaid - totalBillingPaid) <= 0.00001 ? "✔" : "✖"}</td>
+            `;
+            if (isNegativePublicPaid) {
+                totalRowHTML += `<td>${totalRatioPaid.toFixed(2)}</td>`;
+            }
+            totalRowHTML += `</tr>`;
+
+            tbody.insertAdjacentHTML('beforeend', totalRowHTML);
+            block.appendChild(table);
+
+            // —— 仅在 isNegativePublicPaid 时才显示提示 —— //
+            if (isNegativePublicPaid) {
+                const noteWrapper = document.createElement('div');
+                noteWrapper.className = 'alert alert-info border-0 rounded-0 mt-2';
+                noteWrapper.innerHTML = `
+                <div class="d-flex align-items-center">
+                  <span class="me-2">📌</span>
+                  <div>
+                    本期由于公摊费<0，<span class="ratio-info">按用电比</span>付费
+                  </div>
+                </div>
+              `;
+                block.appendChild(noteWrapper);
+            }
+
+            container.appendChild(block);
+        });
+    }
+</script>
+
+<script>
+    let powerChartInstance = null;
+
+    // 自定义插件：按“同一天的一组柱子”聚合，只在组中心画一次日期
+    const dateLabelsPlugin = {
+        id: 'dateLabelsPlugin',
+        afterDatasetsDraw(chart) {
+            const {ctx, scales} = chart;
+            const yUsage = scales.yUsage;
+            if (!yUsage) return;
+
+            // 收集所有 bar 元素，按 dateLabel 分组
+            const groups = new Map(); // key: dateLabel, value: {xs: [像素x...]}
+            chart.data.datasets.forEach((ds, dsi) => {
+                if (ds.type !== 'bar') return;
+                const meta = chart.getDatasetMeta(dsi);
+                meta.data.forEach((elem, idx) => {
+                    const pt = ds.data[idx];
+                    if (!pt || pt.y == null) return;         // 只对真正有柱子的点画标签
+                    const label = pt.dateLabel;
+                    if (!label) return;
+                    if (!groups.has(label)) groups.set(label, {xs: []});
+                    groups.get(label).xs.push(elem.x);
+                });
+            });
+
+            if (groups.size === 0) return;
+
+            ctx.save();
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            const baselineY = yUsage.bottom + 4; // 基线位置
+            groups.forEach(({xs}, label) => {
+                const centerX = xs.reduce((a, b) => a + b, 0) / xs.length;
+                ctx.fillText(label, centerX, baselineY);
+            });
+
+            ctx.restore();
+        }
+    };
+
+
+    /**
+     * Chart：把 period.meters 里的“3号表+5号表”拆成“3号表”“5号表”
+     */
+    function getChartReadingsMap(period) {
+        const map = {};
+        period.meters.forEach(m => {
+            const id = m.meterId;
+            const arr = m.currentReading;
+            console.log("id==" + id + ",arr==" + arr)
+
+            // 拆分：3号表+5号表 => 3号表 / 5号表
+            if (id.includes('+')) {
+                const ids = id.split('+').map(s => s.trim()).filter(Boolean);
+                ids.forEach((sid, idx) => {
+                    const v = parseFloat(arr[idx]);
+                    if (!isNaN(v)) map[sid] = v;
+                });
+                return;
+            }
+
+            // 常规单表：取第1个读数
+            const v = parseFloat(arr[0]);
+            if (!isNaN(v)) map[id] = v;
+        });
+        return map;
+    }
+
+    function renderPowerChart() {
+        // 仅保留最近periodCount期（index 0 是最新）
+        const periodCount = 6;
+        const lastCount = Math.min(periodCount, powerBillingPeriods.length);
+        const recentDesc = powerBillingPeriods.slice(0, lastCount); // newest -> older
+        const ascPeriods = recentDesc.slice().reverse();       // oldest -> newest
+
+        // ✅ 改：固定显示 5 个表（3号/5号分开）
+        const meterIds = ['1号表', '2号表', '3号表', '4号表', '5号表'];
+
+        // X 轴范围：线性时间轴（距 xStart 的天数）
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        const startRef = new Date(ascPeriods[0].billingPeriodDate);
+        const endRef = new Date(recentDesc[0].billingPeriodDate);
+        const xStart = startRef;
+        const xEnd = endRef;
+        const xMin = 0;
+        const xMax = Math.ceil((xEnd - xStart) / DAY_MS);
+        const dateToDays = (dateStr) => (new Date(dateStr) - xStart) / DAY_MS;
+
+        // 数据容器
+        const readingPointsMap = {};
+        const usagePointsMap = {};
+        meterIds.forEach(id => {
+            readingPointsMap[id] = [];
+            usagePointsMap[id] = [];
+        });
+
+        // 若要给“倒数第periodCount期”也计算用电量，需要窗口外上一期（更早一期）
+        const prevForFirst = powerBillingPeriods.length > lastCount ? powerBillingPeriods[lastCount] : null;
+        const prevFirstMap = prevForFirst ? getChartReadingsMap(prevForFirst) : null;
+
+        // 构造折线(累计读数) & 柱(ΔkWh)
+        for (let i = 0; i < ascPeriods.length; i++) {
+            const period = ascPeriods[i];
+            const xDays = dateToDays(period.billingPeriodDate);
+
+            const currMap = getChartReadingsMap(period);
+
+            // 折线：累计读数（每个单表）
+            meterIds.forEach(id => {
+                const yVal = currMap[id];
+                if (yVal == null || isNaN(yVal)) return;
+                readingPointsMap[id].push({x: xDays, y: +(+yVal).toFixed(1)});
+            });
+
+            // ΔkWh：i==0 用窗口外上一期（若有）；i>0 用 ascPeriods[i-1]
+            if (i === 0) {
+                if (prevFirstMap) {
+                    meterIds.forEach(id => {
+                        const curr = currMap[id];
+                        const prev = prevFirstMap[id];
+                        if (curr == null || prev == null || isNaN(curr) || isNaN(prev)) return;
+                        const used = curr - prev;
+                        usagePointsMap[id].push({
+                            x: xDays,
+                            y: +used.toFixed(1),
+                            dateLabel: period.billingPeriodDate
+                        });
+                    });
+                }
+            } else {
+                const prevPeriod = ascPeriods[i - 1];
+                const prevMap = getChartReadingsMap(prevPeriod);
+
+                meterIds.forEach(id => {
+                    const curr = currMap[id];
+                    const prev = prevMap[id];
+                    if (curr == null || prev == null || isNaN(curr) || isNaN(prev)) return;
+                    const used = curr - prev;
+                    usagePointsMap[id].push({
+                        x: xDays,
+                        y: +used.toFixed(1),
+                        dateLabel: period.billingPeriodDate
+                    });
+                });
+            }
+        }
+
+        // 颜色（扩展到 5 组）
+        const lineColors = [
+            'rgb(255,99,132)',
+            'rgb(54,162,235)',
+            'rgb(75,192,192)',
+            'rgb(255,159,64)',
+            'rgb(153,102,255)'
+        ];
+        const barFills = [
+            'rgba(255,99,132,0.25)',
+            'rgba(54,162,235,0.25)',
+            'rgba(75,192,192,0.25)',
+            'rgba(255,159,64,0.25)',
+            'rgba(153,102,255,0.25)'
+        ];
+        const barBorders = [
+            'rgba(255,99,132,0.9)',
+            'rgba(54,162,235,0.9)',
+            'rgba(75,192,192,0.9)',
+            'rgba(255,159,64,0.9)',
+            'rgba(153,102,255,0.9)'
+        ];
+
+        // 组装 datasets
+        const datasets = [];
+        meterIds.forEach((id, i) => {
+            // 折线
+            datasets.push({
+                label: `${id}（读数）`,
+                type: 'line',
+                yAxisID: 'yReading',
+                data: readingPointsMap[id],
+                fill: false,
+                tension: 0.35,
+                pointRadius: 3,
+                borderWidth: 2,
+                borderColor: lineColors[i],
+                backgroundColor: lineColors[i],
+                parsing: false,
+            });
+            // 柱
+            datasets.push({
+                label: `${id}（用电量）`,
+                type: 'bar',
+                yAxisID: 'yUsage',
+                data: usagePointsMap[id],
+                borderWidth: 1,
+                borderColor: barBorders[i],
+                backgroundColor: barFills[i],
+                parsing: false,
+                barPercentage: 0.9,
+                categoryPercentage: 0.9
+            });
+        });
+
+        if (powerChartInstance) powerChartInstance.destroy();
+
+        const ctx = document.getElementById('powerChart').getContext('2d');
+        powerChartInstance = new Chart(ctx, {
+            data: {datasets},
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                parsing: false,
+                interaction: {mode: 'nearest', intersect: false},
+                layout: {padding: {bottom: 22}},
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: xMin,
+                        max: xMax,
+                        ticks: {display: false},
+                        grid: {drawOnChartArea: true, drawTicks: false}
+                    },
+                    yUsage: {
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {display: true, text: '用电量kWh'},
+                        grid: {drawOnChartArea: true}
+                    },
+                    yReading: {
+                        position: 'left',
+                        title: {display: true, text: '电表读数'},
+                        grid: {drawOnChartArea: false}
+                    }
+                },
+                plugins: {
+                    title: {display: true, text: '近' + periodCount + '期用电变化'},
+                    legend: {position: 'top'},
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => {
+                                const ds = items[0].dataset;
+                                const i = items[0].dataIndex;
+                                const d = ds.data?.[i]?.dateLabel;
+                                if (d) return d;
+
+                                const DAY_MS = 24 * 60 * 60 * 1000;
+                                const xStart2 = new Date(ascPeriods[0].billingPeriodDate);
+                                const d2 = new Date(xStart2.getTime() + Math.round(items[0].parsed.x) * DAY_MS);
+                                const yyyy = d2.getFullYear();
+                                const mm = String(d2.getMonth() + 1).padStart(2, '0');
+                                const dd = String(d2.getDate()).padStart(2, '0');
+                                return `${yyyy}-${mm}-${dd}`;
+                            },
+                            label: (item) => {
+                                const name = item.dataset.label || '';
+                                const y = item.parsed.y;
+                                return item.dataset.yAxisID === 'yUsage' ? `${name}: ${y} kWh` : `${name}: ${y}`;
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [dateLabelsPlugin]
+        });
+    }
+</script>
+
+<script>
+    // 页面加载时渲染
+    window.onload = function () {
+        renderPowerTable();
+        renderPowerChart();
+    };
+</script>
+
+</body>
+</html>
